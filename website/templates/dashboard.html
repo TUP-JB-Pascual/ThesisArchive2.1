@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+
+{% block content %}
+        <div class="col-md-10 offset-md-1">
+            {% if user.is_authenticated and user.is_superuser%}
+            <div class="welcome rounded bg-dark text-light">
+                <h4>Dashboard</h4>
+                <p>Welcome Librarian, {{ user.first_name }} {{user.last_name}} </p>
+            </div>
+            
+            <div class="row">
+                <div class="col-sm-4 offset-md-1">
+                    <div class="card">
+                        <div class="row g-0">
+                            <div class="col-md-4 bg-light icon rounded-start">
+                                <i class="fa-solid fa-clipboard-list fa-5x"></i>
+                                <!-- <i class="fa-solid fa-file-import"></i> -->
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body">
+                                    <h3 class="card-title"> {{ thesis_pending_count }} </h3>
+                                    <p class="card-text">Pending Projects</p>
+                                    <a class="btn btn-dark" href="">See All</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-4 offset-md-2">
+                    <div class="card">
+                        <div class="row g-0">
+                            <div class="col-md-4 bg-light icon rounded-start">
+                                <i class="fa-solid fa-file-circle-question fa-5x"></i>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body">
+                                    <h3 class="card-title"> {{ request_pending_count }} </h3>
+                                    <p class="card-text">Pending Requests</p>
+                                    <a class="btn btn-dark" href="">See All</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <hr>
+            <div class="report rounded bg-dark text-light">
+                <h4>This Week's Report</h4>
+            </div>
+            <div class="row">
+                <div class="col-sm-3">
+                    <div class="card">
+                        <div class="row g-0">
+                            <div class="col-md-4 bg-light icon rounded-start">
+                                <i class="fa-solid fa-clipboard-check fa-5x"></i>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body">
+                                    <h3 class="card-title"> #### </h3>
+                                    <p class="card-text">Approved Projects</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="card">
+                        <div class="row g-0">
+                            <div class="col-md-4 bg-light icon rounded-start">
+                                <i class="fa-solid fa-rectangle-xmark fa-5x fa-rotate-90"></i>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body">
+                                    <h3 class="card-title"> #### </h3>
+                                    <p class="card-text">Rejected Projects</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="card">
+                        <div class="row g-0">
+                            <div class="col-md-4 bg-light icon rounded-start">
+                                <i class="fa-solid fa-file fa-5x"></i>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body">
+                                    <h3 class="card-title"> #### </h3>
+                                    <p class="card-text">Accepted Requests</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="card">
+                        <div class="row g-0">
+                            <div class="col-md-4 bg-light icon rounded-start">
+                                <i class="fa-regular fa-file-excel fa-5x"></i>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body">
+                                    <h3 class="card-title"> #### </h3>
+                                    <p class="card-text">Rejected Requests</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <hr>
+            <div class="report rounded bg-dark text-light">
+                <h4>This Month's Report</h4>
+            </div>
+            <div class="row">
+                <div class="col-sm-3">
+                    <div class="card">
+                        <div class="row g-0">
+                            <div class="col-md-4 bg-light icon rounded-start">
+                                <i class="fa-solid fa-clipboard-check fa-5x"></i>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body">
+                                    <h3 class="card-title"> #### </h3>
+                                    <p class="card-text">Approved Projects</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="card">
+                        <div class="row g-0">
+                            <div class="col-md-4 bg-light icon rounded-start">
+                                <i class="fa-solid fa-rectangle-xmark fa-5x fa-rotate-90"></i>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body">
+                                    <h3 class="card-title"> #### </h3>
+                                    <p class="card-text">Rejected Projects</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="card">
+                        <div class="row g-0">
+                            <div class="col-md-4 bg-light icon rounded-start">
+                                <i class="fa-solid fa-file fa-5x"></i>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body">
+                                    <h3 class="card-title"> #### </h3>
+                                    <p class="card-text">Accepted Requests</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="card">
+                        <div class="row g-0">
+                            <div class="col-md-4 bg-light icon rounded-start">
+                                <i class="fa-regular fa-file-excel fa-5x"></i>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body">
+                                    <h3 class="card-title"> #### </h3>
+                                    <p class="card-text">Rejected Requests</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <hr>
+            {% endif %}
+        <br>
+        </div>
+{% endblock %}

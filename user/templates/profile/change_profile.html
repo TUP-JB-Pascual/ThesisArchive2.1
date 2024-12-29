@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    
+    <div class="col-md-6 offset-md-3">
+        <a href="{% url 'user_profile' %}" class="btn btn-secondary">Back</a>
+        <div class="profile-container">
+            <div class="profile-header">
+                <h1>Update User Profile</h1>
+            </div>
+            <hr>
+            <form method="POST" action="{% url 'update_profile' %}">
+                {% csrf_token %}
+                <div class="grid-container">
+                    <label>{{ form.email.label }}</label>{{ form.email }}
+                    <label>{{ form.first_name.label }}</label>{{ form.first_name }}
+                    <label>{{ form.middle_name.label }}</label>{{ form.middle_name }}
+                    <label>{{ form.last_name.label }}</label>{{ form.last_name }}
+                    <label>{{ form.suffix_name.label }}</label>{{ form.suffix_name }}
+                </div>
+                <br>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">Update</button>
+                </div>
+            </form>
+        </div>
+        
+    </div>
+    <script>
+        $("#unclickable").focus(function(){
+          console.log(1);  // Logs '1' to the console when the focus event is triggered
+          $(this).blur();  // Immediately removes focus from the element
+        });
+    </script>
+
+{% endblock %}

@@ -10,24 +10,31 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('', views.HomePageView.as_view(), name='home'),
-    path('publish_thesis/', views.ThesisPublishView.as_view(), name='thesis_publish'),
-    path('thesis_list/', views.ThesisListView.as_view(), name='thesis_list'),
-    path('thesis/<int:pk>', views.ThesisDetailView, name='thesis_detail'),
-    path('thesis/update/<int:pk>', views.ThesisUpdateView, name='thesis_update'),
-    path('thesis/<int:pk>/delete', views.ThesisDeleteView.as_view(), name='thesis_delete'),
-    path('generate-pdf-url/<int:pk>', views.generate_temp_url, name='generate_temp_url'),
+    path('dashboard/', views.DashboardView, name='dashboard'),
+    path('repository/', views.RepositoryView, name='repository'),
+    path('publish-thesis/', views.ThesisPublishView.as_view(), name='thesis_publish'),
+    path('thesis-list/', views.ThesisListView.as_view(), name='thesis_list'),
+    path('thesis/<slug:slug>', views.ThesisDetailView, name='thesis_detail'),
+    path('thesis/<slug:slug>/request', views.ThesisRequestView, name='thesis_request'),
+    path('thesis/<slug:slug>/delete', views.ThesisDeleteView.as_view(), name='thesis_delete'),
+    path('thesis/<slug:slug>/download', views.ThesisDownload, name='thesis_download'),
+    path('thesis/update/<slug:slug>', views.ThesisUpdateView, name='thesis_update'),
+    path('generate-pdf-url/<slug:slug>', views.generate_temp_url, name='generate_temp_url'),
     path('temp/pdf/<str:url_key>', views.temp_url_redirect, name='temporary_url_redirect'),
-    path('thesis/<int:pk>/request', views.ThesisRequestView, name='thesis_request'),
-    path('thesis/request_list', views.ThesisRequestListView.as_view(), name='request_list'),
-    path('thesis/request_list/<int:pk>', views.RequestDetailView, name='request_view'),
-    path('thesis/request_list/<int:pk>/reject', views.RequestReject, name='request_reject'),
-    path('thesis/<int:pk>/download', views.ThesisDownload, name='thesis_download'),
-    path('download-pdf/<str:pdf>', views.ThesisDownload, name='download'),
+    path('request-list', views.ThesisRequestListView.as_view(), name='request_list'),
+    path('request/<slug:slug>', views.RequestDetailView, name='request_view'),
+    path('request/<slug:slug>/reject', views.RequestReject, name='request_reject'),
+    path('download-pdf/<str:source>/<slug:slug>', views.ThesisDownload, name='download'),
     path('window-blur/<str:temp_url>', views.window_blur_method, name='window_blur_method'),
+    path('tags-list', views.tags_list, name='tags_list'),
+    path('tags/<slug:tag_slug>', views.tags_filter, name='tags_filter'),
+    #path('tags/<slug:tag_slug>', views.tags_filter.as_view(), name='tags_filter'),
+    
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
     re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
 ]
 
+handler404 = views.custom_404
 
 
 #USE ONLY ON DEVELOPMENT

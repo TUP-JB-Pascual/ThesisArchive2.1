@@ -1,25 +1,39 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <div class="col-md-6 offset-md-3">
-        <h1>Publish Thesis</h1>
-        
+    {% if form.errors %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            Form Error
+            {% for field in form %}
+                {% if field.errors %}
+                    {{ field.errors }}
+                {% endif %}
+            {% endfor %}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endif %}
+    <div class="col-md-6 offset-md-3 profile-container">
+        <!--<a href="{% url 'thesis_list' %}" class="btn btn-secondary">Back</a>-->
+        <div class="profile-header">
+            <h1>Publish Thesis</h1>
+        </div>
         <form method="POST" action="" enctype="multipart/form-data" id="publishForm" name="publishForm">
             {% csrf_token %}
-            {% if form.errors %}
-                <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                    Form Error
-                    {% for field in form %}
-                        {% if field.errors %}
-                            {{ field.errors }}
-                        {% endif %}
-                    {% endfor %}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            {% endif %}
-            {{ form.as_p }}
-            <button type="submit" class="btn btn-success" id="publish" name="publish">Publish</button>
-            <a href="{% url 'thesis_list' %}" class="btn btn-secondary">Back</a>
+            <div class="grid-container">
+                <label>{{ form.published_date.label }}</label>{{ form.published_date }}
+                <label>{{ form.title.label }}</label>{{ form.title }}
+                <label>{{ form.authors.label }}</label>{{ form.authors }}
+            </div>
+            {{ form.authors.help_text }}
+            <div class="grid-container">
+                <label>{{ form.pdf_file.label }}</label>{{ form.pdf_file }}
+                <label>{{ form.tags.label }}</label>{{ form.tags }}
+                <span></span>{{ form.tags.help_text }}
+            </div>
+            <br>
+            <div class="d-grid">
+                <button type="submit" class="btn btn-success" id="publish" name="publish">Publish</button>
+            </div>
         </form>
         
     </div>

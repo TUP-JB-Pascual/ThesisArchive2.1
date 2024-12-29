@@ -8,7 +8,16 @@ from django.conf.urls.static import static
 
 
 urlpatterns = [
+    path('login/', views.UserLoginView.as_view(), name='login'),
+    path('logout/', views.UserLogoutView.as_view(), name='logout'),
     path('registration/', views.UserRegisterView, name='user_registration'),
     path('verify-email/<str:uidb64>/<str:token>/', views.VerifyEmail, name='verify_email'),
-    #path('login/', views.UserLoginView.as_view(), name='login'),
+    path('user-profile/', views.UserProfile, name='user_profile'),
+    path('update-profile/', views.UserUpdateProfile, name='update_profile'),
+    path('change-password/', views.UserChangePassword, name='change_password'),
+    path('forgot-password/', views.UserForgotPassword, name='forgot_password'),
+    # user profile
+        # change pass (All User)
+        # forgot password (All User)
+        # add ID # as improvement
 ]

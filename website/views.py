@@ -8,7 +8,7 @@ from django.urls import reverse_lazy, reverse
 from django.contrib.auth import get_user_model
 import os
 import pymupdf
-
+import datetime
 import random
 import string
 from django.utils import timezone
@@ -26,7 +26,13 @@ from .forms import ThesisForm
 from .models import Thesis
 
 from django.core.mail import send_mail
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponseNotFound
+from django.template.loader import render_to_string
+
+from taggit.models import Tag
+
+def custom_404(request, exception):
+    return HttpResponseNotFound(render_to_string('404.html', {}))
 
 def home(request):
     context = {}
@@ -36,6 +42,48 @@ class HomePageView(generic.ListView):
     model = Thesis
     template_name = 'home.html'
 
+def DashboardView(request):
+    if request.user.is_authenticated and request.user.is_superuser:
+        current_user = request.user
+        # Pending Proj
+        thesis_pending_count = Thesis.objects.filter(status='PENDING').count()
+        # Pending Req
+        request_pending_count = TempURL.objects.filter(url_status='PENDING').count()
+
+        # TODAY'S DATE
+        date = datetime.date.today()
+
+        ### WEEKLY REPORT ###
+        # This week's START and END date
+        # Calculate the start of the week (Sunday is day 0)
+        start_of_week = date - datetime.timedelta(days=date.weekday() + 1)  # Adjust to Sunday
+        # Calculate the end of the week (Saturday is day 6)
+        end_of_week = start_of_week + datetime.timedelta(days=6)  # Saturday is 6 days after Sunday
+
+        modified_thesis_this_week = Thesis.objects.filter(
+            decision_date__gte=datetime.datetime.combine(start_of_week, datetime.time.min),  # Start of the week
+            decision_date__lte=datetime.datetime.combine(end_of_week, datetime.time.max)   # End of the week
+        )
+
+        modified_request_this_week = TempURL.objects.filter(
+            decision_date__gte=datetime.datetime.combine(start_of_week, datetime.time.min),  # Start of the week
+            decision_date__lte=datetime.datetime.combine(end_of_week, datetime.time.max)   # End of the week
+        )
+
+        ### MONTHLY REPORT ###
+
+
+        context = {'thesis_pending_count': thesis_pending_count, 
+                   'request_pending_count': request_pending_count,
+                   }
+        return render(request, 'dashboard.html', context)
+
+def RepositoryView(request):
+    if request.user.is_authenticated:
+        current_user = request.user
+        context = {}
+        return render(request, 'repository.html', context)
+
 class ThesisPublishView(generic.CreateView):
     model = Thesis
     template_name = 'thesis_publish.html'
@@ -43,13 +91,13 @@ class ThesisPublishView(generic.CreateView):
     #messages.success(request, "Upload Successful.")
 
     def form_valid(self, form):
-        form.instance.author = self.request.user
+        form.instance.poster = self.request.user
         form.save()
         return super().form_valid(form)
     
     def get_initial(self):
         initial = super().get_initial()
-        initial['author'] = self.request.user.id
+        initial['poster'] = self.request.user.id
         return initial
     
     def post(self, request, *args, **kwargs):
@@ -65,8 +113,8 @@ class XFrameOptionsExemptMixin:
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
 
-def ThesisDetailView(request, pk):
-    thesis = get_object_or_404(Thesis, pk=pk)
+def ThesisDetailView(request, slug):
+    thesis = get_object_or_404(Thesis, slug=slug)
     abstract_pdf_name = thesis.pdf_file.name
     abstract_pdf_name = abstract_pdf_name.split('.')
     abstract_pdf_name = abstract_pdf_name[0] + '_abstract.' + abstract_pdf_name[1]
@@ -75,18 +123,24 @@ def ThesisDetailView(request, pk):
     apa_citation = thesis.generate_apa()
     mla_citation = thesis.generate_mla()
     print(thesis.pdf_file)
-    return render(request, 'thesis_detail.html', {'thesis': thesis, 'abstract_pdf_name': abstract_pdf_name, 'apa_citation':apa_citation, 'mla_citation':mla_citation})
+    thesis_authors = []
+    authors_list = thesis.authors.splitlines()
+    if len(authors_list) > 1:
+        thesis_authors = ', '.join(authors_list[:-1]) + ' and ' + authors_list[-1]
+    else:
+        thesis_authors = authors_list[0]
+    return render(request, 'thesis_detail.html', {'thesis': thesis, 'thesis_authors': thesis_authors, 'abstract_pdf_name': abstract_pdf_name, 'apa_citation':apa_citation, 'mla_citation':mla_citation})
 
-def ThesisUpdateView(request, pk):
+def ThesisUpdateView(request, slug):
     if request.user.is_authenticated:
-        instance = Thesis.objects.get(id=pk)
+        instance = Thesis.objects.get(slug=slug)
         form = ThesisForm(request.POST or None, request.FILES or None, instance=instance)
         if form.is_valid():
-            current_val = Thesis.objects.get(id=pk)
+            current_val = Thesis.objects.get(slug=slug)
             update_delete(current_val.pdf_file.name)
             form.save()
             create_update_pdf(instance.pdf_file.name)
-            return redirect('thesis_detail', pk = instance.pk)
+            return redirect('thesis_detail', slug = instance.slug)
         context = {'form': form}
         return render(request, 'thesis_update.html', context)
     else:
@@ -144,8 +198,8 @@ class ThesisDeleteView(generic.DeleteView):
 def generate_random_key(length=32):
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
-def generate_temp_url(pk, email, first_name, last_name):
-    requested_pdf = get_object_or_404(Thesis, pk=pk)
+def generate_temp_url(slug, email, first_name, last_name):
+    requested_pdf = get_object_or_404(Thesis, slug=slug)
     requested_pdf.downloads += 1
     requested_pdf.save()
     title = requested_pdf.title
@@ -166,30 +220,39 @@ def generate_temp_url(pk, email, first_name, last_name):
 
 def temp_url_redirect(request, url_key):
     try:
-        temp_pdf = TempURL.objects.get(url_key=url_key)
-        if temp_pdf.is_expired():
-            raise Http404("This temporary PDF link has expired.")
-        pdf_file_name = temp_pdf.pdf_file.name.split('_water')
-        pdf_file = "".join(pdf_file_name)
-        pdf_file_path = temp_pdf.pdf_file.path
-        if os.path.exists(pdf_file_path):
-            thesis_obj = Thesis.objects.get(pdf_file=pdf_file)
-            context = {'thesis_title': thesis_obj.title, 'thesis_author': thesis_obj.author, 'pdf': pdf_file_path, 'temp_url': url_key}
-            return render(request, 'request_pdf.html', context)
-            #return render(request, 'thesis_detail.html', {'thesis': thesis, 'abstract_pdf_name': abstract_pdf_name})
-            #return FileResponse(open(pdf_file_path, 'rb'), content_type='application/pdf')
-        raise Http404("PDF file not found.")
+        temp_pdf = get_object_or_404(TempURL, url_key=url_key)
+        if temp_pdf.url_status == temp_pdf.STATE_USED:
+            return render(request, 'request_status.html', {'temp_pdf': temp_pdf})
+        elif temp_pdf.is_expired():
+            if temp_pdf.url_status != temp_pdf.STATE_EXPIRED:
+                temp_pdf.url_status = temp_pdf.STATE_EXPIRED
+                temp_pdf.save()
+            # GO TO EXPIRED PAGE
+            return render(request, 'request_status.html', {'temp_pdf': temp_pdf})
+        else:
+            pdf_file_name = temp_pdf.pdf_file.name.split('_water')
+            pdf_file = "".join(pdf_file_name)
+            if os.path.exists(temp_pdf.pdf_file.path):
+                thesis_obj = Thesis.objects.get(pdf_file=pdf_file)
+                context = {'thesis_obj': thesis_obj, 'pdf': temp_pdf, 'temp_url': url_key}
+                return render(request, 'request_pdf.html', context)
+                #return render(request, 'thesis_detail.html', {'thesis': thesis, 'abstract_pdf_name': abstract_pdf_name})
+                #return FileResponse(open(pdf_file_path, 'rb'), content_type='application/pdf')
+            # GO TO PDF NOT FOUND / REQUEST AGAIN
+            return render(request, 'request_status.html', {'status': 'DOES NOT EXIST'})
     except TempURL.DoesNotExist:
-        raise Http404("Temporary PDF URL does not exist.")
+        # GO TO URL NOT EXIST
+        return render(request, 'request_status.html', {'status': 'DOES NOT EXIST'})
 
-    # Link Expired OR Used OR DOES NOT EXIST
-    # Link Exist
-    # Alert window.onblur
-
-def ThesisDownload(request, pdf):
-    # Path to the PDF file
+def ThesisDownload(request, source, slug):
+    if source == 'thesis':
+        thesis = get_object_or_404(Thesis, slug=slug)
+    elif source == 'request':
+        thesis = get_object_or_404(TempURL, slug=slug)
+    else:
+        raise Http404("Invalid Request.")
+    pdf = thesis.pdf_file.path
     file_path = os.path.join(settings.MEDIA_ROOT, pdf)  # Use the path where your file is stored
-    # Open the file
     with open(file_path, 'rb') as file:
         # Create an HTTP response with the appropriate content type for PDF
         response = HttpResponse(file.read(), content_type='application/pdf')
@@ -197,17 +260,17 @@ def ThesisDownload(request, pdf):
         response['Content-Disposition'] = 'attachment; filename="thesis.pdf"'
     return response
 
-def ThesisRequestView(request, pk):
-    thesis = Thesis.objects.get(id=pk)
+def ThesisRequestView(request, slug):
+    thesis = get_object_or_404(Thesis, slug=slug)
     if request.method == 'POST':
         form = RequestForm(request.POST)
         if form.is_valid():
             email = form.cleaned_data['email']
             first_name = form.cleaned_data['first_name']
             last_name = form.cleaned_data['last_name']
-            generate_temp_url(pk, email, first_name, last_name)
+            generate_temp_url(slug, email, first_name, last_name)
             messages.success(request, f'Thank you, {first_name} {last_name}! Your request has been sent.')
-            return redirect('thesis_detail', pk=pk)
+            return redirect('thesis_detail', slug=slug)
         else:
             messages.error(request, 'There was an error with your form submission. Please try again.')
     else:
@@ -221,8 +284,8 @@ class ThesisRequestListView(generic.ListView):
     #paginate_by = 10
 
 # ACCEPT
-def RequestDetailView(request, pk):
-    thesis_request = get_object_or_404(TempURL, pk=pk)
+def RequestDetailView(request, slug):
+    thesis_request = get_object_or_404(TempURL, slug=slug)
     if request.method == 'POST':
         print(request.POST)
         # Email content
@@ -243,8 +306,8 @@ def RequestDetailView(request, pk):
         return redirect('request_list')
     return render(request, 'request_detail.html', {'thesis_request': thesis_request})
 
-def RequestReject(request, pk):
-    thesis_request = get_object_or_404(TempURL, pk=pk)
+def RequestReject(request, slug):
+    thesis_request = get_object_or_404(TempURL, slug=slug)
     if request.method == 'POST':
         print(request.POST)
         # Email content
@@ -265,10 +328,8 @@ def RequestReject(request, pk):
     return render(request, 'request_reject.html', {'thesis_request': thesis_request})
 
 def window_blur_method(request, temp_url):
-    print(temp_url)
     try:
         temp_pdf = TempURL.objects.get(url_key=temp_url)
-        print(temp_pdf)
         if request.method == 'POST':
             # You can process any data sent from the client here
             message = request.POST.get('message', 'No message')
@@ -281,6 +342,27 @@ def window_blur_method(request, temp_url):
     except TempURL.DoesNotExist:
         raise Http404("Temporary PDF URL does not exist.")
     return JsonResponse({'status': 'error', 'message': 'Invalid request method!'})
+
+def tags_list(request):
+    tags = Tag.objects.all()
+    context = {'tags': tags}
+    return render(request, 'tags_list.html', context)
+
+def tags_filter(request, tag_slug):
+    current_tag = Tag.objects.filter(slug=tag_slug).values_list('name', flat=True)
+    filtered_thesis_by_tag = Thesis.objects.filter(tags__name__in=current_tag)
+    context = {'tag_slug': tag_slug, 'filtered_thesis_by_tag': filtered_thesis_by_tag}
+    return render(request, 'tags_filter.html', context)
+
+'''
+class tags_filter(generic.ListView):
+    model = Thesis
+    template_name = 'tags_filter.html'
+    context_object_name = 'thesis'
+    
+    def get_queryset(self):
+        return Thesis.objects.filter(tags__slug=self.kwargs.get('tag_slug'))
+'''
 
 #improvement
     # Reason for rejection

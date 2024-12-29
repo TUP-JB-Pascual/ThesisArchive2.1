@@ -4,15 +4,15 @@
     <div class="col-md-6 offset-md-3">
         <h1>Thesis Request List</h1>
         <form class="d-flex" role="search">
-            <input class="form-control" type="text" placeholder="Search" aria-label="Search" id="searchBar">
+            <input class="form-control" type="text" placeholder="Search" aria-label="Search" id="searchInput" onkeyup="searchTable()">
           </form>
         <table class="table" id="dataTable">
             <thead>
                 <tr>
-                    <th>Title</th>
-                    <th>Petitioner</th>
-                    <th>Email</th>
-                    <th>Request Date</th>
+                    <th onclick="sortTable(6)"><span class="sort-arrow" id="requestTitleArrow"></span>Title</th>
+                    <th onclick="sortTable(7)"><span class="sort-arrow" id="petitionerArrow"></span>Petitioner</th>
+                    <th onclick="sortTable(8)"><span class="sort-arrow" id="emailArrow"></span>Email</th>
+                    <th onclick="sortTable(9)"><span class="sort-arrow" id="requestDateArrow"></span>Request Date</th>
                     <th>Decision</th>
                 </tr>
             </thead>
@@ -24,47 +24,14 @@
                         <td>{{ request.email }}</td>
                         <td>{{ request.request_date }}</td>
                         <td>
-                            <a href="{% url 'request_view' request.pk %}" class="btn btn-primary btn-sm">View</a>
+                            <a href="{% url 'request_view' request.slug %}" class="btn btn-primary btn-sm">View</a>
                         </td>
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-    
-    <script>
-        // Get the input field and table
-        const searchBar = document.getElementById('searchBar');
-        const table = document.getElementById('dataTable');
-        const tableRows = table.getElementsByTagName('tr');
-
-        // Add event listener to search bar
-        searchBar.addEventListener('input', function() {
-            const query = searchBar.value.toLowerCase();
-            
-            // Loop through all table rows
-            for (let i = 1; i < tableRows.length; i++) { // Start at 1 to skip the header row
-                const row = tableRows[i];
-                const cells = row.getElementsByTagName('td');
-                let matchFound = false;
-
-                // Loop through all columns in the row
-                for (let j = 0; j < cells.length; j++) {
-                    const cellText = cells[j].textContent.toLowerCase();
-                    if (cellText.includes(query)) {
-                        matchFound = true;
-                        break; // No need to check further columns if match is found
-                    }
-                }
-
-                // Show/hide rows based on the search query
-                if (matchFound) {
-                    row.style.display = ''; // Show row
-                } else {
-                    row.style.display = 'none'; // Hide row
-                }
-            }
-        });
-    </script>
+    {% load static %}
+    <script type="text/javascript" src="{% static 'javascript/datatable.js' %}"></script>
 
 {% endblock %}

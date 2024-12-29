@@ -21,29 +21,35 @@ class CustomUserManager(BaseUserManager):
         return user
     
     def create_user(self, email, password, first_name, last_name, **extra_fields):
-        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_verified', False)
         extra_fields.setdefault('is_active', True)
+        extra_fields.setdefault('is_staff', False)
         extra_fields.setdefault('is_superuser', False)
         return self._create_user(email, password, first_name, last_name, **extra_fields)
 
     def create_superuser(self, email, password, first_name, last_name, **extra_fields):
-        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_verified', False)
         extra_fields.setdefault('is_active', True)
+        extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         return self._create_user(email, password, first_name, last_name, **extra_fields)
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(db_index=True, max_length=255, unique=True, blank=True, default='')
-    first_name = models.CharField(max_length=100, blank=True, default='')
-    last_name = models.CharField(max_length=100, blank=True, default='')
+    first_name = models.CharField(max_length=100, blank=True, default='') #required
+    middle_name = models.CharField(max_length=100, blank=True, null=True)
+    last_name = models.CharField(max_length=100, blank=True, default='') #required
+    suffix_name = models.CharField(max_length=50, blank=True, null=True)
     name = str(first_name) + str(last_name)
 
-    is_staff = models.BooleanField(default=True)
+    is_verified = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
 
     date_joined = models.DateTimeField(default=timezone.now)
     last_login = models.DateTimeField(blank=True, null=True)
+    #last_pass_change = models.DateTimeField(blank=True, null=True)
 
     objects = CustomUserManager()
 
@@ -52,12 +58,17 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = ['first_name', 'last_name']
     
     class Meta:
-        verbose_name = 'CustomUser'
-        verbose_name_plural = 'CustomUsers'
+        verbose_name = 'User'
+        verbose_name_plural = 'Users'
 
     def get_full_name(self):
-        return self.first_name + ' ' + self.last_name
+        full_name = self.first_name
+        if len(self.middle_name) > 0:
+            full_name = full_name + ' ' + self.middle_name[0]
+        full_name = full_name + ' ' + self.last_name
+        if len(self.suffix_name) > 0:
+            full_name = full_name + ' ' + self.suffix_name
+        return full_name
     
     def get_short_name(self):
         return self.name or self.email.split('@')[0]
-

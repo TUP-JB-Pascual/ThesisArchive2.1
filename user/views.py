@@ -1,10 +1,10 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, resolve_url
 from django.views import generic
 from django.contrib.auth import logout
 from django.contrib.auth.views import LoginView, LogoutView
-from .forms import RegisterUserForm
+from .forms import RegisterUserForm, UpdateProfileForm, ChangePasswordForm
 from django.contrib import messages
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 
 import random
 import string
@@ -16,10 +16,14 @@ from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth import get_user_model
 from django.http import HttpResponse
 from django.contrib.auth import login
+from django.contrib.auth.decorators import login_required
 
-from .forms import RegisterUserForm
+from django.conf import settings
 
 def UserRegisterView(request):
+    if request.user.is_authenticated:
+        messages.success(request, "To Access the Registration Page, you need to log out first.")
+        return redirect('home')
     if request.method == "POST":
         form = RegisterUserForm(request.POST)
         if form.is_valid():
@@ -65,7 +69,6 @@ def UserRegisterView(request):
             return redirect('user_registration')  # Redirect to some "check your email" page
     else:
         form = RegisterUserForm()
-
     return render(request, 'registration/register.html', {'form': form})
 
 def VerifyEmail(request, uidb64, token):
@@ -86,10 +89,27 @@ def VerifyEmail(request, uidb64, token):
         return redirect('user_registration')  # Redirect back to registration if the link is invalid
 
 class UserLoginView(LoginView):
-    redirect_authenticated_user = True
+    redirect_authenticated_user=True
+    def dispatch(self, request, *args, **kwargs):
+        # Check if the user is authenticated
+        if request.user.is_authenticated and self.redirect_authenticated_user:
+            # Redirect to a different view if user is authenticated
+            messages.success(self.request, "To Access the Login Page, you need to log out first.")
+            return redirect(reverse('home'))
 
+        # Proceed with the normal view processing if not authenticated
+        return super().dispatch(request, *args, **kwargs)
+    
     def get_success_url(self):
-        return reverse_lazy('home') 
+        if self.request.user.is_authenticated and self.request.user.is_superuser:
+            messages.success(self.request, "Welcome Super User")
+            return reverse_lazy('home')
+        elif self.request.user.is_authenticated:
+            messages.success(self.request, "Welcome User")
+            return reverse_lazy('home') 
+        else:
+            messages.success(self.request, "To access that page you need to log in.")
+            return reverse_lazy('login') 
     
     def form_invalid(self, form):
         messages.error(self.request,'Invalid username or password')
@@ -99,3 +119,43 @@ class UserLogoutView(LogoutView):
     def get(self, request):
         logout(request)
         return redirect('login')
+
+@login_required
+def UserProfile(request):
+    user = request.user
+    context = {'user': user}
+    return render(request, 'profile/profile.html', context)
+
+@login_required
+def UserUpdateProfile(request):
+    if request.user.is_authenticated:
+        User = get_user_model()
+        current_user = User.objects.get(id=request.user.id)
+        form = UpdateProfileForm(request.POST or None, instance=current_user)
+        if form.is_valid():
+            form.save()
+            login(request, current_user)
+            messages.success(request, "You've successfully update your profile.")
+            return redirect('user_profile')
+        context = {'form': form}
+        return render(request, 'profile/change_profile.html', context)
+    else:
+        messages.success(request, "You must be logged in to access that page.")
+        return redirect('login')
+
+@login_required
+def UserChangePassword(request):
+    if request.user.is_authenticated:
+        current_user = request.user
+        if request.method == 'POST':
+            pass
+        else:
+            form = ChangePasswordForm(current_user)
+            context ={'form': form}
+            return render(request, 'profile/change_password.html', context)
+    else:
+        messages.success(request, "To Access this page you need to log in first.")
+        return redirect('login')
+
+def UserForgotPassword(request):
+    pass

@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="col-md-6 offset-md-3">
+        <a href="{% url 'tags_list' %}" class="btn btn-secondary">Back</a>
+        <h3>Current Tag: {{ tag_slug }}</h3>
+        <h1>Thesis List</h1>
+        <form class="d-flex" role="search">
+            <input class="form-control" type="text" placeholder="Search" aria-label="Search" id="searchInput" onkeyup="searchTable()">
+        </form>
+        <table class="table" id="dataTable">
+            <thead>
+                <tr>
+                    <th onclick="sortTable(0)"><span class="sort-arrow" id="titleArrow"></span>Title</th>
+                    <th onclick="sortTable(1)"><span class="sort-arrow" id="posterArrow"></span>Poster</th>
+                    <th>File</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for thesis in filtered_thesis_by_tag %}
+                    <tr>
+                        <td>{{ thesis.title }}</td>
+                        <td>{{ thesis.poster.first_name }} {{ thesis.poster.last_name }}</td>
+                        <td>
+                            <a href="{% url 'thesis_detail' thesis.slug %}" class="btn btn-primary btn-sm">Open</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% load static %}
+    <script type="text/javascript" src="{% static 'javascript/datatable.js' %}"></script>
+    
+{% endblock %}

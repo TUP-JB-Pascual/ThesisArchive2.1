@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="col-md-6 offset-md-3">
+        <h1>Tags List</h1>
+        <form class="d-flex" role="search">
+            <input class="form-control" type="text" placeholder="Search" aria-label="Search" id="searchInput" onkeyup="filterLinks()">
+        </form>
+        <hr>
+        <div class="flex" role="contentinfo">
+            {% for tag in tags.all %}
+                <a href="{% url 'tags_filter' tag.slug%}" class="btn btn-sm btn-primary tag_item" style="margin: 0px 0px 3px 0px;">{{ tag.name }}</a>
+            {% endfor %}
+        </div>
+    </div>
+    {% load static %}
+    <script type="text/javascript" src="{% static 'javascript/tagsearch.js' %}"></script>
+{% endblock %}

@@ -27,6 +27,7 @@ SECRET_KEY = 'django-insecure-koeokfq93_x()arlozf#)yw&s7p1_jg6mx2lmu2b#bjgtz#6%d
 DEBUG = False
 
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+#ALLOWED_HOSTS = ['jerichogianjohn1.pythonanywhere.com']
 
 
 # Application definition
@@ -38,8 +39,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    #pips
     #'django_cleanup.apps.CleanupConfig',
-    
+    'django_password_validators',
+    'taggit',
+
     #apps
     'website',
     'user',
@@ -78,7 +82,7 @@ WSGI_APPLICATION = 'ThesisArchive2.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
-
+# FOR LOCALHOST
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -90,10 +94,24 @@ DATABASES = {
     }
 }
 
-
+# FOR DEPLOYMENT
+'''
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'JerichoGianJohn1$ThesisArchiveDatabase2',
+        'USER': 'JerichoGianJohn1',
+        'PASSWORD' : 'LoisCarloBrix',
+        'HOST': 'JerichoGianJohn1.mysql.pythonanywhere-services.com',
+    }
+}
+'''
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
+
+
+'''
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -106,6 +124,33 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+'''
+
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django_password_validators.password_character_requirements.password_validation.PasswordCharacterValidator',
+        'OPTIONS': {
+             'min_length_digit': 1,
+             'min_length_alpha': 2,
+             'min_length_special': 1,
+             'min_length_lower': 1,
+             'min_length_upper': 1,
+             'special_characters': "~!@#$%^&*()_-+={}\":;'[],.<>/\\?|"
+         }
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {
+            "min_length": 8,
+        },
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
     },
 ]
 
@@ -127,21 +172,22 @@ USE_TZ = True
 #STATICFILES_DIRS = [BASE_DIR / 'website/static',]
 STATICFILES_DIRS = [BASE_DIR / "website/static", "/var/www/static/",]
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'static'
+STATIC_ROOT = (os.path.join(BASE_DIR, "static"))
 #STATIC_ROOT = "/var/www/example.com/static/"
 # Change "example.com" to webpage name
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = (os.path.join(BASE_DIR, "media"))
 MEDIA_URL = '/media/'
 
 X_FRAME_OPTIONS = 'ALLOW-FROM http://127.0.0.1:8000/'
+# X_FRAME_OPTIONS = 'ALLOW-FROM https://jerichogianjohn1.pythonanywhere.com/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'user.CustomUser'
-LOGIN_REDIRECT_URL = 'home'
-LOGOUT_REDIRECT_URL = 'home'
+#LOGIN_REDIRECT_URL = 'home'
+LOGOUT_REDIRECT_URL = 'login'
 LOGIN_URL = 'login'
 
 # EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
@@ -152,6 +198,8 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'jerichogianjohn@gmail.com'
-EMAIL_HOST_PASSWORD = 'elnx nysp nhoc lrlc'
+EMAIL_HOST_PASSWORD = 'ynek loos nhfj milf'
 
 DEFAULT_FROM_EMAIL = 'jerichogianjohn@gmail.com'
+
+TAGGIT_CASE_INSENSITIVE = True

@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="col-md-6 offset-md-3 profile-container">
+        <div class="profile-header">
+            <h1>Profile</h1>
+        </div>
+        <hr>
+        <div class="grid-container-special">
+            <label>Email: </label> <input type="text" value="{{ user.email }}">
+            <label>First Name: </label> <input type="text" value="{{ user.first_name }}">
+            <label>Middle Name: </label> <input type="text" value="{{ user.middle_name }}">
+            <label>Last Name: </label> <input type="text" value="{{ user.last_name }}">
+            <label>Suffix: </label> <input type="text" value="{{ user.suffix_name }}">
+        </div>
+        <br>
+        <div class="row">
+            <div class="col-md-6 d-grid">
+                <a href="{% url 'update_profile' %}" class="btn btn-primary">Edit Profile</a>
+            </div>
+            <div class="col-md-6 d-grid">
+                <a href="{% url 'change_password' %}" class="btn btn-success">Change Password</a>
+            </div>
+        </div>
+    </div>
+
+
+{% endblock %}

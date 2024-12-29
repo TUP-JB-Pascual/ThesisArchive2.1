@@ -15,3 +15,87 @@ input {
     padding: 8px;
     width: 200px;
 }
+
+.welcome {
+    padding: 1em;
+    margin-bottom: 0.5em;
+}
+
+.welcome p{
+    margin-bottom: 0.5em;
+}
+
+.report {
+    padding: 0.5em 0em 0.5em 1em;
+    margin-bottom: 0.5em;
+}
+
+.report h4 {
+    margin: 0;
+}
+
+.icon {
+    padding-top: 1em;
+    padding-bottom: 1em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.repo-card {
+    padding-bottom: 1em;
+}
+
+.readOnlyTextBox {
+    color: grey; 
+    background-color: #F0F0F0;
+}
+
+.profile-container{
+    border-radius: .25rem;
+    margin: 50px auto;
+    padding: 20px;
+    background-color: #f0f0f0;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1), 0 6px 20px rgba(0, 0, 0, 0.1); /* 3D shadow */
+}
+
+.profile-header {
+    text-align: center;
+}
+
+.grid-container, .grid-container-special{
+    display: grid;
+    grid-template-columns: 2fr 5fr; /* Two columns: 1 for labels, 2 for text boxes */
+    gap: 15px;
+    width: 100%;
+    max-width: 800px; /* Limit grid width */
+}
+
+.grid-container p, .grid-container label , .grid-container-special p , .grid-container-special label{
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 10px;
+}
+
+.grid-container input[type="text"], .grid-container-special input[type="text"] {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    width: 100%;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+/* Make the input unclickable using CSS */
+.grid-container-special input[type="text"] {
+    pointer-events: none; /* Prevent any interaction with the inputs */
+    background-color: #e9ecef; /* Light gray background */
+    color: #6c757d; /* Disabled text color */
+    border: 1px solid #ddd; /* Lighter border */
+}
+
+.label-bold label {
+    font-weight: bold;
+}
