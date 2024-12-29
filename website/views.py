@@ -6,6 +6,7 @@ from django.views.decorators.clickjacking import xframe_options_exempt
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy, reverse
 from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
 import os
 import pymupdf
 import datetime
@@ -34,29 +35,23 @@ from taggit.models import Tag
 def custom_404(request, exception):
     return HttpResponseNotFound(render_to_string('404.html', {}))
 
-def home(request):
-    context = {}
-    return render(request, 'home.html', context)
-
-class HomePageView(generic.ListView):
-    model = Thesis
-    template_name = 'home.html'
-
+@login_required(login_url='user/login/')
 def DashboardView(request):
     if request.user.is_authenticated and request.user.is_superuser:
         current_user = request.user
         # Pending Proj
         thesis_pending_count = Thesis.objects.filter(status='PENDING').count()
         # Pending Req
-        request_pending_count = TempURL.objects.filter(url_status='PENDING').count()
+        request_pending_count = TempURL.objects.filter(status='PENDING').count()
 
         # TODAY'S DATE
-        date = datetime.date.today()
+        today_date = datetime.date.today()
+        this_month = today_date.month
 
         ### WEEKLY REPORT ###
         # This week's START and END date
         # Calculate the start of the week (Sunday is day 0)
-        start_of_week = date - datetime.timedelta(days=date.weekday() + 1)  # Adjust to Sunday
+        start_of_week = today_date - datetime.timedelta(days=today_date.weekday())  # Adjust to Sunday - 6
         # Calculate the end of the week (Saturday is day 6)
         end_of_week = start_of_week + datetime.timedelta(days=6)  # Saturday is 6 days after Sunday
 
@@ -64,19 +59,47 @@ def DashboardView(request):
             decision_date__gte=datetime.datetime.combine(start_of_week, datetime.time.min),  # Start of the week
             decision_date__lte=datetime.datetime.combine(end_of_week, datetime.time.max)   # End of the week
         )
-
         modified_request_this_week = TempURL.objects.filter(
             decision_date__gte=datetime.datetime.combine(start_of_week, datetime.time.min),  # Start of the week
             decision_date__lte=datetime.datetime.combine(end_of_week, datetime.time.max)   # End of the week
         )
+        # Thesis Week Mod Count
+        modified_thesis_this_week_rejected_count = modified_thesis_this_week.filter(status='REJECTED').count()
+        modified_thesis_this_week_approved_count = modified_thesis_this_week.filter(status='APPROVED').count()
+        # Request Week Mod Count
+        modified_request_this_week_rejected_count = modified_request_this_week.filter(status='REJECTED').count()
+        modified_request_this_week_approved_count = modified_request_this_week.filter(status='APPROVED').count()
 
+        
         ### MONTHLY REPORT ###
+        modified_thesis_this_month = Thesis.objects.filter(decision_date__month=this_month)
+        modified_request_this_month = TempURL.objects.filter(decision_date__month=this_month)
+        # Thesis Month Mod Count
+        modified_thesis_this_month_rejected_count = modified_thesis_this_month.filter(status='REJECTED').count()
+        modified_thesis_this_month_approved_count = modified_thesis_this_month.filter(status='APPROVED').count()
+        # Request Month Mod Count
+        modified_request_this_month_rejected_count = modified_request_this_month.filter(status='REJECTED').count()
+        modified_request_this_month_approved_count = modified_request_this_month.filter(status='APPROVED').count()
 
 
         context = {'thesis_pending_count': thesis_pending_count, 
                    'request_pending_count': request_pending_count,
+
+                   'modified_thesis_this_week_approved_count': modified_thesis_this_week_approved_count,
+                   'modified_thesis_this_week_rejected_count': modified_thesis_this_week_rejected_count,
+
+                   'modified_request_this_week_approved_count': modified_request_this_week_approved_count,
+                   'modified_request_this_week_rejected_count': modified_request_this_week_rejected_count,
+
+                   'modified_thesis_this_month_approved_count': modified_thesis_this_month_approved_count,
+                   'modified_thesis_this_month_rejected_count': modified_thesis_this_month_rejected_count,
+
+                   'modified_request_this_month_approved_count': modified_request_this_month_approved_count,
+                   'modified_request_this_month_rejected_count': modified_request_this_month_rejected_count,
                    }
         return render(request, 'dashboard.html', context)
+    else:
+        return RepositoryView(request)
 
 def RepositoryView(request):
     if request.user.is_authenticated:
@@ -107,6 +130,9 @@ class ThesisPublishView(generic.CreateView):
 class ThesisListView(generic.ListView):
     model = Thesis
     template_name = 'thesis_list.html'
+
+    def get_queryset(self):
+        return Thesis.objects.filter(status="APPROVED")
 
 class XFrameOptionsExemptMixin:
     @xframe_options_exempt
@@ -221,6 +247,11 @@ def generate_temp_url(slug, email, first_name, last_name):
 def temp_url_redirect(request, url_key):
     try:
         temp_pdf = get_object_or_404(TempURL, url_key=url_key)
+        if temp_pdf.status == temp_pdf.STATE_PENDING:
+            return render(request, 'request_status.html', {'temp_pdf': temp_pdf})
+        elif temp_pdf.status == temp_pdf.STATE_REJECTED:
+            return render(request, 'request_status.html', {'temp_pdf': temp_pdf})
+
         if temp_pdf.url_status == temp_pdf.STATE_USED:
             return render(request, 'request_status.html', {'temp_pdf': temp_pdf})
         elif temp_pdf.is_expired():
@@ -282,6 +313,17 @@ class ThesisRequestListView(generic.ListView):
     template_name = 'request_list.html'
     context_object_name = 'request_list'
     #paginate_by = 10
+
+    def get_queryset(self):
+        status_filter = self.kwargs.get('status_filter')
+        request_list = TempURL.objects.filter(status=status_filter)
+        return request_list
+
+    def get_context_data(self, **kwargs):
+        status_filter = self.kwargs.get('status_filter')
+        context = super().get_context_data(**kwargs)
+        context['status_filter'] = status_filter.title()
+        return context
 
 # ACCEPT
 def RequestDetailView(request, slug):

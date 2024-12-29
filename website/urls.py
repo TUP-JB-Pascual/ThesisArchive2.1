@@ -9,9 +9,8 @@ from django.conf.urls.static import static
 
 
 urlpatterns = [
-    path('', views.HomePageView.as_view(), name='home'),
-    path('dashboard/', views.DashboardView, name='dashboard'),
-    path('repository/', views.RepositoryView, name='repository'),
+    path('', views.DashboardView, name='home'),
+    path('', views.RepositoryView, name='home'),
     path('publish-thesis/', views.ThesisPublishView.as_view(), name='thesis_publish'),
     path('thesis-list/', views.ThesisListView.as_view(), name='thesis_list'),
     path('thesis/<slug:slug>', views.ThesisDetailView, name='thesis_detail'),
@@ -21,7 +20,7 @@ urlpatterns = [
     path('thesis/update/<slug:slug>', views.ThesisUpdateView, name='thesis_update'),
     path('generate-pdf-url/<slug:slug>', views.generate_temp_url, name='generate_temp_url'),
     path('temp/pdf/<str:url_key>', views.temp_url_redirect, name='temporary_url_redirect'),
-    path('request-list', views.ThesisRequestListView.as_view(), name='request_list'),
+    path('request-list/<str:status_filter>', views.ThesisRequestListView.as_view(), name='request_list'),
     path('request/<slug:slug>', views.RequestDetailView, name='request_view'),
     path('request/<slug:slug>/reject', views.RequestReject, name='request_reject'),
     path('download-pdf/<str:source>/<slug:slug>', views.ThesisDownload, name='download'),

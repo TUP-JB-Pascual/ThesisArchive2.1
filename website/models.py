@@ -22,11 +22,11 @@ def rename_pdf(instance, filename):
     return os.path.join('thesis_pdf', filename)
 
 class Thesis(models.Model):
-    STATE_APPROVED = 'APPOVED'
+    STATE_APPROVED = 'APPROVED'
     STATE_REJECTED = 'USED'
     STATE_PENDING = 'PENDING'
     
-    url_state_choices = (
+    status_choices = (
         (STATE_APPROVED, 'Approved'),
         (STATE_REJECTED, 'Rejected'),
         (STATE_PENDING, 'Pending')
@@ -43,7 +43,7 @@ class Thesis(models.Model):
     visits = models.IntegerField(default=0)
     downloads = models.IntegerField(default=0)
 
-    status = models.CharField(max_length=10, choices=url_state_choices, default=STATE_PENDING)
+    status = models.CharField(max_length=10, choices=status_choices, default=STATE_PENDING)
     decision_date = models.DateField(default=datetime.date.today())
     # null=True, default=None
 
@@ -160,6 +160,9 @@ class TempURL(models.Model):
     STATE_EXPIRED = 'EXPIRED'
     STATE_USED = 'USED'
     STATE_VALID = 'VALID'
+    STATE_DNE = 'DOES NOT EXIST'
+
+    STATE_APPROVED = 'APPROVED'
     STATE_REJECTED = 'REJECTED'
     STATE_PENDING = 'PENDING'
     
@@ -167,24 +170,30 @@ class TempURL(models.Model):
         (STATE_EXPIRED, 'Expired'),
         (STATE_USED, 'Used'),
         (STATE_VALID, 'Valid'),
+        (STATE_DNE, 'Does Not Exist'),
+    )
+
+    status_choices = (
+        (STATE_APPROVED, 'Approved'),
         (STATE_REJECTED, 'Rejected'),
-        (STATE_PENDING,'Pending')
+        (STATE_PENDING, 'Pending')
     )
 
     url_key = models.CharField(max_length=100, unique=True)
     title = models.TextField(max_length=255)
     slug = models.SlugField(max_length=300, blank=True, null=True)
     pdf_file = models.FileField(upload_to='temporary_pdfs/', max_length=500)
-    request_date = models.DateField(auto_now_add=True)
-    expiration_date = models.DateField(default=datetime.date.today())
+    request_date = models.DateTimeField(auto_now_add=True)
+    expiration_date = models.DateTimeField(default=datetime.datetime.today())
     # null=True, default=None
 
     email = models.EmailField()
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
 
-    url_status = models.CharField(max_length=10, choices=url_state_choices, default=STATE_PENDING)
-    decision_date = models.DateField(default=datetime.date.today())
+    status = models.CharField(max_length=10, choices=status_choices, default=STATE_PENDING)
+    url_status = models.CharField(max_length=15, choices=url_state_choices, default=STATE_DNE)
+    decision_date = models.DateTimeField(default=datetime.date.today())
     # null=True, default=None
 
     def is_expired(self):

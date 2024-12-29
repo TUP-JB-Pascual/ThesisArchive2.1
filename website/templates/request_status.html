@@ -3,23 +3,35 @@
 {% block content %}
     <div class="col-md-6 offset-md-3">
         <a href="{% url 'home' %}" class="btn btn-secondary">Go back to Home</a>
-        {% if temp_pdf.url_status == 'USED' %}
+        {% if temp_pdf.status == 'PENDING' %}
         <br>
-        <h1>Oops! Link Used</h1>
-        This Thesis Request Link has already been USED.
-        
-        {% elif temp_pdf.url_status == 'EXPIRED' %}
-        <br>
-        <h1>Oops! Link Expired</h1>
-        This Thesis Request Link has already EXPIRED.
+        <h1>Oops! Request Pending</h1>
+        This Thesis Request is still UNDER REVIEW. Please wait for the confirmation. It may take up to 72 hours.
 
-        {% else %}
+        {% elif temp_pdf.status == 'REJECTED' %}
         <br>
-        <h1>Oops! Link NOT FOUND</h1>
-        This Thesis Request Link DOES NOT EXIST.
-
+        <h1>Oops! Request Rejected</h1>
+        This Thesis Request has been REJECTED. Please check your email for the reason. You can also resubmit a new request.
         {% endif %}
+        
+        {% if temp_pdf.status == 'APPROVED' %}
+            {% if temp_pdf.url_status == 'USED' %}
+            <br>
+            <h1>Oops! Link Used</h1>
+            This Thesis Request Link has already been USED.
+            
+            {% elif temp_pdf.url_status == 'EXPIRED' %}
+            <br>
+            <h1>Oops! Link Expired</h1>
+            This Thesis Request Link has already EXPIRED.
+
+            {% else %}
+            <br>
+            <h1>Oops! Link NOT FOUND</h1>
+            This Thesis Request Link DOES NOT EXIST.
+            {% endif %}
         <br>
         Please submit a new request.
+        {% endif %}
     </div>
 {% endblock %}
