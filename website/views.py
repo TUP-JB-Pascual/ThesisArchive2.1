@@ -16,7 +16,7 @@ from django.utils import timezone
 from datetime import timedelta
 from django.http import Http404
 from .models import TempURL
-from .forms import RequestForm
+from .forms import RequestForm, ThesisRejectReasonForm, RequestRejectReasonForm
 
 from django.http import FileResponse, HttpResponse, JsonResponse
 from django.conf import settings
@@ -101,16 +101,22 @@ def DashboardView(request):
     else:
         return RepositoryView(request)
 
+@login_required(login_url='user/login/')
 def RepositoryView(request):
     if request.user.is_authenticated:
         current_user = request.user
-        context = {}
+        current_user_thesis = Thesis.objects.filter(poster=current_user)
+        rejectedThesisList = current_user_thesis.filter(status=Thesis.STATE_REJECTED)
+        pendingThesisList = current_user_thesis.filter(status=Thesis.STATE_PENDING)
+        approvedThesisList = current_user_thesis.filter(status=Thesis.STATE_APPROVED)
+        context = {'rejectedThesisList': rejectedThesisList, 'pendingThesisList': pendingThesisList, 'approvedThesisList': approvedThesisList}
         return render(request, 'repository.html', context)
 
-class ThesisPublishView(generic.CreateView):
+class ThesisPublishView(LoginRequiredMixin, generic.CreateView):
     model = Thesis
     template_name = 'thesis_publish.html'
     form_class = ThesisForm
+    login_url = '/user/login/'
     #messages.success(request, "Upload Successful.")
 
     def form_valid(self, form):
@@ -127,12 +133,24 @@ class ThesisPublishView(generic.CreateView):
         print(request.POST)
         return super().post(request, *args, **kwargs)
 
-class ThesisListView(generic.ListView):
+class ThesisListView(LoginRequiredMixin, generic.ListView):
     model = Thesis
     template_name = 'thesis_list.html'
+    context_object_name = 'thesis_list'
+    login_url = '/user/login/'
+    #paginate_by = 10
 
     def get_queryset(self):
-        return Thesis.objects.filter(status="APPROVED")
+        status_filter = self.kwargs.get('status_filter')
+        thesis_list = Thesis.objects.filter(status=status_filter)
+        return thesis_list
+
+    def get_context_data(self, **kwargs):
+        status_filter = self.kwargs.get('status_filter')
+        context = super().get_context_data(**kwargs)
+        context['status_filter'] = status_filter.title()
+        context['reject_choices'] = Thesis.reject_choices
+        return context
 
 class XFrameOptionsExemptMixin:
     @xframe_options_exempt
@@ -144,8 +162,9 @@ def ThesisDetailView(request, slug):
     abstract_pdf_name = thesis.pdf_file.name
     abstract_pdf_name = abstract_pdf_name.split('.')
     abstract_pdf_name = abstract_pdf_name[0] + '_abstract.' + abstract_pdf_name[1]
-    thesis.visits += 1
-    thesis.save()
+    if thesis.status == thesis.STATE_APPROVED:
+        thesis.visits += 1
+        thesis.save()
     apa_citation = thesis.generate_apa()
     mla_citation = thesis.generate_mla()
     print(thesis.pdf_file)
@@ -155,7 +174,32 @@ def ThesisDetailView(request, slug):
         thesis_authors = ', '.join(authors_list[:-1]) + ' and ' + authors_list[-1]
     else:
         thesis_authors = authors_list[0]
-    return render(request, 'thesis_detail.html', {'thesis': thesis, 'thesis_authors': thesis_authors, 'abstract_pdf_name': abstract_pdf_name, 'apa_citation':apa_citation, 'mla_citation':mla_citation})
+    context = {'thesis': thesis, 'thesis_authors': thesis_authors, 'abstract_pdf_name': abstract_pdf_name, 'apa_citation':apa_citation, 'mla_citation':mla_citation, 'reject_choices': Thesis.reject_choices}
+    if request.method == 'POST':
+        form = ThesisRejectReasonForm(request.POST, instance=thesis)
+        if form.is_valid():
+            form.save()
+            ThesisReject(request, slug)
+            context['form'] = form
+            return render(request, 'thesis_detail.html', context)
+    else:
+        form = ThesisRejectReasonForm(instance=thesis)
+        context['form'] = form
+    return render(request, 'thesis_detail.html', context)
+
+def ThesisApprove(request, slug):
+    thesis = get_object_or_404(Thesis, slug=slug)
+    thesis.status = thesis.STATE_APPROVED
+    thesis.save()
+    messages.success(request, f"You have approved {thesis.title}.")
+    return redirect('thesis_detail', slug=slug)  # Redirect to a user list or user detail page
+
+def ThesisReject(request, slug):
+    thesis = get_object_or_404(Thesis, slug=slug)
+    thesis.status = thesis.STATE_REJECTED
+    thesis.save()
+    messages.success(request, f"You have rejected {thesis.title}.")
+    return redirect('thesis_detail', slug=slug)  # Redirect to a user list or user detail page
 
 def ThesisUpdateView(request, slug):
     if request.user.is_authenticated:
@@ -251,25 +295,29 @@ def temp_url_redirect(request, url_key):
             return render(request, 'request_status.html', {'temp_pdf': temp_pdf})
         elif temp_pdf.status == temp_pdf.STATE_REJECTED:
             return render(request, 'request_status.html', {'temp_pdf': temp_pdf})
-
-        if temp_pdf.url_status == temp_pdf.STATE_USED:
-            return render(request, 'request_status.html', {'temp_pdf': temp_pdf})
-        elif temp_pdf.is_expired():
-            if temp_pdf.url_status != temp_pdf.STATE_EXPIRED:
-                temp_pdf.url_status = temp_pdf.STATE_EXPIRED
-                temp_pdf.save()
-            # GO TO EXPIRED PAGE
-            return render(request, 'request_status.html', {'temp_pdf': temp_pdf})
+        elif temp_pdf.status == temp_pdf.STATE_APPROVED:
+            if temp_pdf.is_expired():
+                if temp_pdf.url_status != temp_pdf.STATE_EXPIRED:
+                    temp_pdf.url_status = temp_pdf.STATE_EXPIRED
+                    temp_pdf.save()
+                # GO TO EXPIRED PAGE
+                return render(request, 'request_status.html', {'temp_pdf': temp_pdf})
+            elif temp_pdf.url_status == temp_pdf.STATE_EXPIRED:
+                return render(request, 'request_status.html', {'temp_pdf': temp_pdf})
+            elif temp_pdf.url_status == temp_pdf.STATE_USED:
+                return render(request, 'request_status.html', {'temp_pdf': temp_pdf})
+            else:
+                pdf_file_name = temp_pdf.pdf_file.name.split('_water')
+                pdf_file = "".join(pdf_file_name)
+                if os.path.exists(temp_pdf.pdf_file.path):
+                    thesis_obj = Thesis.objects.get(pdf_file=pdf_file)
+                    context = {'thesis_obj': thesis_obj, 'pdf': temp_pdf, 'temp_url': url_key}
+                    return render(request, 'request_pdf.html', context)
+                    #return render(request, 'thesis_detail.html', {'thesis': thesis, 'abstract_pdf_name': abstract_pdf_name})
+                    #return FileResponse(open(pdf_file_path, 'rb'), content_type='application/pdf')
+                # GO TO PDF NOT FOUND / REQUEST AGAIN
+                return render(request, 'request_status.html', {'status': 'DOES NOT EXIST'})
         else:
-            pdf_file_name = temp_pdf.pdf_file.name.split('_water')
-            pdf_file = "".join(pdf_file_name)
-            if os.path.exists(temp_pdf.pdf_file.path):
-                thesis_obj = Thesis.objects.get(pdf_file=pdf_file)
-                context = {'thesis_obj': thesis_obj, 'pdf': temp_pdf, 'temp_url': url_key}
-                return render(request, 'request_pdf.html', context)
-                #return render(request, 'thesis_detail.html', {'thesis': thesis, 'abstract_pdf_name': abstract_pdf_name})
-                #return FileResponse(open(pdf_file_path, 'rb'), content_type='application/pdf')
-            # GO TO PDF NOT FOUND / REQUEST AGAIN
             return render(request, 'request_status.html', {'status': 'DOES NOT EXIST'})
     except TempURL.DoesNotExist:
         # GO TO URL NOT EXIST
@@ -291,10 +339,11 @@ def ThesisDownload(request, source, slug):
         response['Content-Disposition'] = 'attachment; filename="thesis.pdf"'
     return response
 
+@login_required(login_url='user/login/')
 def ThesisRequestView(request, slug):
     thesis = get_object_or_404(Thesis, slug=slug)
     if request.method == 'POST':
-        form = RequestForm(request.POST)
+        form = RequestForm(request.POST, request.FILES)
         if form.is_valid():
             email = form.cleaned_data['email']
             first_name = form.cleaned_data['first_name']
@@ -308,10 +357,11 @@ def ThesisRequestView(request, slug):
         form = RequestForm()
     return render(request,'thesis_request.html', {'form': form, 'thesis': thesis})
 
-class ThesisRequestListView(generic.ListView):
+class ThesisRequestListView(LoginRequiredMixin, generic.ListView):
     model = TempURL
     template_name = 'request_list.html'
     context_object_name = 'request_list'
+    login_url = '/user/login/'
     #paginate_by = 10
 
     def get_queryset(self):
@@ -323,51 +373,76 @@ class ThesisRequestListView(generic.ListView):
         status_filter = self.kwargs.get('status_filter')
         context = super().get_context_data(**kwargs)
         context['status_filter'] = status_filter.title()
+        context['url_state_choices'] = TempURL.url_state_choices
+        context['url_reject_choices'] = TempURL.url_reject_choices
         return context
 
 # ACCEPT
+@login_required(login_url='user/login/')
 def RequestDetailView(request, slug):
     thesis_request = get_object_or_404(TempURL, slug=slug)
+    context = {'thesis_request': thesis_request}
     if request.method == 'POST':
-        print(request.POST)
-        # Email content
-        subject = "Thesis Request Approved"
-        message = "Good day! {} {}, your request for a PDF copy of the thesis titled {} has been accepted. DO NOT CLICK ON ANOTHER TAB UNTIL YOU HAVE CLICKED 'DOWNLOAD', IT WILL CLOSE!!! This link will expire in three days. http://127.0.0.1:8000/temp/pdf/{}".format(thesis_request.first_name, thesis_request.last_name, thesis_request.title, thesis_request.url_key)
-        recipient_list = [thesis_request.email]  # The recipient's email
+        form = RequestRejectReasonForm(request.POST, instance=thesis_request)
+        if form.is_valid():
+            form.save()
+            RequestReject(request, slug)
+            context['form'] = form
+            return redirect('request_list', status_filter=thesis_request.STATE_REJECTED)
+    else:
+        form = RequestRejectReasonForm(instance=thesis_request)
+        context['form'] = form
+    return render(request, 'request_detail.html', context)
 
-        # Send the email
-        send_mail(
-            subject,
-            message,
-            settings.DEFAULT_FROM_EMAIL,
-            recipient_list,
-            fail_silently=False,
-        )
-        messages.success(request, "Request Acceptance Email has been sent to {}.".format(thesis_request.email))
-        #thesis_request.delete()
-        return redirect('request_list')
-    return render(request, 'request_detail.html', {'thesis_request': thesis_request})
+def RequestApprove(request, slug):
+    thesis_request = get_object_or_404(TempURL, slug=slug)
+    # Email content
+    subject = "Thesis Request Approved"
+    message = "Good day! {} {}, your request for a PDF copy of the thesis titled {} has been accepted. DO NOT CLICK ON ANOTHER TAB UNTIL YOU HAVE CLICKED 'DOWNLOAD', IT WILL CLOSE!!! This link will expire in three days. http://127.0.0.1:8000/temp/pdf/{}".format(thesis_request.first_name, thesis_request.last_name, thesis_request.title, thesis_request.url_key)
+    recipient_list = [thesis_request.email]  # The recipient's email
+
+    # Send the email
+    send_mail(
+        subject,
+        message,
+        settings.DEFAULT_FROM_EMAIL,
+        recipient_list,
+        fail_silently=False,
+    )
+    messages.success(request, f"You have approved the Request ID #{thesis_request.pk}.")
+    messages.success(request, "Request Acceptance Email has been sent to {}.".format(thesis_request.email))
+    thesis_request.status = thesis_request.STATE_APPROVED
+    thesis_request.url_status = thesis_request.STATE_VALID
+    thesis_request.save()
+    return redirect('request_list', status_filter=thesis_request.STATE_APPROVED)  # Redirect to a user list or user detail page
 
 def RequestReject(request, slug):
     thesis_request = get_object_or_404(TempURL, slug=slug)
-    if request.method == 'POST':
-        print(request.POST)
-        # Email content
-        subject = "Thesis Request Denied"
-        message = "Good day! {} {}, I'm sorry to inform you that your request for a PDF copy of the thesis titled {} has been rejected. Please re-submit a new request with correct information.".format(thesis_request.first_name, thesis_request.last_name, thesis_request.title)
-        recipient_list = [thesis_request.email]  # The recipient's email
-        # Send the email
-        send_mail(
-            subject,
-            message,
-            settings.DEFAULT_FROM_EMAIL,
-            recipient_list,
-            fail_silently=False,
-        )
-        messages.success(request, "Request Rejection Email has been sent to {}.".format(thesis_request.email))
-        thesis_request.delete()
-        return redirect('request_list')
-    return render(request, 'request_reject.html', {'thesis_request': thesis_request})
+    print(thesis_request.rejection_reason)
+    reason = ''
+    if thesis_request.rejection_reason != '':
+        reason = thesis_request.rejection_reason
+        for value, name in thesis_request.url_reject_choices:
+            if reason == value:
+                reason = name
+    print(reason)
+    # Email content
+    subject = "Thesis Request Denied"
+    message = "Good day! {} {}, I'm sorry to inform you that your request for a PDF copy of the thesis titled {} has been rejected. Please re-submit a new request with correct information. \nReason: \n   -{}".format(thesis_request.first_name, thesis_request.last_name, thesis_request.title, reason)
+    recipient_list = [thesis_request.email]  # The recipient's email
+    # Send the email
+    send_mail(
+        subject,
+        message,
+        settings.DEFAULT_FROM_EMAIL,
+        recipient_list,
+        fail_silently=False,
+    )
+    messages.success(request, f"You have rejected the Request ID #{thesis_request.pk}.")
+    messages.success(request, "Request Rejection Email has been sent to {}.".format(thesis_request.email))
+    thesis_request.status = thesis_request.STATE_REJECTED
+    thesis_request.save()
+    return redirect('request_list', status_filter=thesis_request.STATE_REJECTED)
 
 def window_blur_method(request, temp_url):
     try:
@@ -376,7 +451,8 @@ def window_blur_method(request, temp_url):
             # You can process any data sent from the client here
             message = request.POST.get('message', 'No message')
             print(f"Received message: {message}")
-            temp_pdf.delete()
+            temp_pdf.url_status = temp_pdf.STATE_USED
+            temp_pdf.save()
             # You can trigger other server-side actions here (e.g., logging, saving data, etc.)
             # Returning a response to the client
             return JsonResponse({'status': 'success', 'message': 'Method triggered successfully!'})

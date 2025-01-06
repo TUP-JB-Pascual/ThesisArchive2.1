@@ -1,5 +1,5 @@
 from typing import Any
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, UserChangeForm, SetPasswordForm
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, UserChangeForm, SetPasswordForm, PasswordResetForm
 from .models import CustomUser
 from django import forms
 from django.utils.safestring import mark_safe
@@ -102,4 +102,14 @@ class ChangePasswordForm(SetPasswordForm):
         self.fields['new_password2'].widget.attrs['placeholder'] = 'Confirm New Password'
         self.fields['new_password2'].label = 'Confirm Password: '
         self.fields['new_password2'].help_text = mark_safe('<ul class="form-text text-muted small"><li>Your password can\'t be too similar to your other personal information.</li><li>Your password can\'t be a commonly used password.</li><li>Your password must contain at least 8 characters.</li><li>Your password must contain at least 1 numeric character, 1 lowercase character, 1 uppercase character and 1 special character.</li></ul>')
-    
+
+class CustomPasswordResetForm(PasswordResetForm):
+    email = forms.EmailField(
+        label="Email Address",
+        max_length=254,
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Email Address',
+        })
+    )
+

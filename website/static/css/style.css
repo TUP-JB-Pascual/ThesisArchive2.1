@@ -99,3 +99,9 @@ input {
 .label-bold label {
     font-weight: bold;
 }
+
+.account-container {
+    border: 3px solid gray;
+    border-radius: 15px;
+    padding: 5px;
+}

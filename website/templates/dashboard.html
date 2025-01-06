@@ -20,7 +20,7 @@
                                 <div class="card-body">
                                     <h3 class="card-title"> {{ thesis_pending_count }} </h3>
                                     <p class="card-text">Pending Projects</p>
-                                    <a class="btn btn-dark" href="">See All</a>
+                                    <a class="btn btn-dark" href="{% url 'thesis_list' status_filter='pending' %}">See All</a>
                                 </div>
                             </div>
                         </div>

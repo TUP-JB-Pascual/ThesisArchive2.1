@@ -3,7 +3,14 @@
 
 {% block content %}
     <div class="col-md-6 offset-md-3" oncontextmenu="return false">
-        <a href="{% url 'thesis_list' %}" class="btn btn-secondary">Back</a>
+        {% if thesis.status == thesis.STATE_PENDING %}
+            <a href="{% url 'thesis_list' status_filter='pending' %}" class="btn btn-secondary">Back</a>
+        {% elif thesis.status == thesis.STATE_APPROVED %}
+            <a href="{% url 'thesis_list' status_filter='approved' %}" class="btn btn-secondary">Back</a>
+        {% elif thesis.status == thesis.STATE_REJECTED %}
+            <a href="{% url 'thesis_list' status_filter='rejected' %}" class="btn btn-secondary">Back</a>
+        {% endif %}
+        
         <br>
         <hr>
         <h3>{{ thesis.title }}</h3>
@@ -14,20 +21,58 @@
                 <a href="" class="btn btn-sm btn-primary">{{ tag }}</a>
             {% endfor %}
         </small>
+        {% if thesis.status == thesis.STATE_APPROVED %}
+            <br>
+            <small>Visited by {{ thesis.visits }} people</small>
+            <br>
+            <small>Downloaded by {{ thesis.downloads }} people</small>
+        {% endif %}
         <br>
-        <small>Visited by {{ thesis.visits }} people</small>
-        <br>
-        <small>Downloaded by {{ thesis.downloads }} people</small>
+        <small>Status:</small>
+        {% if thesis.status == 'PENDING' %}
+            <span class="badge rounded-pill bg-warning" style="margin-bottom: 0.5em;">Pending</span>
+        {% elif thesis.status == 'APPROVED' %}
+            <span class="badge rounded-pill bg-success" style="margin-bottom: 0.5em;">Approved</span>
+        {% elif thesis.status == 'REJECTED' %}
+            <span class="badge rounded-pill bg-danger">Rejected</span>
+            <br>
+            <small>Reason: 
+                {% for value, display_name in reject_choices %}
+                    {% if thesis.rejection_reason == value %}
+                        {{ display_name }}
+                    {% endif %}
+                {% endfor %}
+            </small>
+        {% endif %}
         <br>
         
         {% if user.is_authenticated %}
-            {% if user.id == thesis.poster.id or user.is_superuser %}
-                <a href="{% url 'thesis_update' thesis.slug %}" class="btn btn-primary">Edit</a>
-                <a href="{% url 'thesis_delete' thesis.slug %}" class="btn btn-danger">Delete</a>
+
+            {% if user.is_superuser %}
+                {% if thesis.status == 'PENDING' %}
+                    <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#ApproveModal"><i class="bi bi-hand-thumbs-up-fill"></i> Approve</button>
+                    <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#RejectModal"><i class="bi bi-hand-thumbs-down-fill"></i> Reject</button>
+                {% elif thesis.status == 'APPROVED' %}
+                    <small>Actions:</small>
+                    <a href="{% url 'thesis_update' thesis.slug %}" class="btn btn-primary btn-sm">Edit</a>
+                    <a href="{% url 'thesis_delete' thesis.slug %}" class="btn btn-danger btn-sm">Delete</a>
+                    <button id="downloadButton" class="btn btn-success btn-sm">Download</button>
+                {% endif %}
+
+            {% elif user.id == thesis.poster.id %}
+                {% if thesis.status == 'PENDING' %}
+                    <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#ApproveModal"><i class="bi bi-hand-thumbs-up-fill"></i> Approve</button>
+                    <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#RejectModal"><i class="bi bi-hand-thumbs-down-fill"></i> Reject</button>
+                {% elif thesis.status == 'APPROVED' %}
+                    <small>Actions:</small>
+                    <a href="{% url 'thesis_update' thesis.slug %}" class="btn btn-primary btn-sm">Edit</a>
+                    <a href="{% url 'thesis_delete' thesis.slug %}" class="btn btn-danger btn-sm">Delete</a>
+                    <button id="downloadButton" class="btn btn-success btn-sm">Download</button>
+                {% endif %}
             {% endif %}
-            <button id="downloadButton" class="btn btn-success">Download</button>
+            
         {% else %}
-            <a href="{% url 'thesis_request' thesis.slug %}" class="btn btn-success">Request Download</a>
+            <a href="{% url 'thesis_request' thesis.slug %}" class="btn btn-success btn-sm">Request Download</a>
         {% endif %}
         <hr>
         <div class="wrapper">
@@ -43,6 +88,49 @@
             <hr>
             <div class="col"><strong>MLA Citation:</strong> {{ mla_citation }}</div>
             <hr>
+        </div>
+    </div>
+
+    <!-- APPROVE MODAL -->
+    <div class="modal fade" id="ApproveModal" tabindex="-1" aria-labelledby="ApproveModal" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="ApproveModal">Are you sure?</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Do you want to APPROVE the thesis titled <strong>"{{ thesis.title }}"</strong> ?
+                </div>
+                <div class="modal-footer">
+                    <a href="{% url 'thesis_approve' thesis.slug %}" class="btn btn-success btn-sm"><i class="bi bi-check"></i> Yes</a>
+                    <button type="button" class="btn btn-danger btn-sm" data-bs-dismiss="modal"><i class="bi bi-x"></i> No</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- REJECT MODAL -->
+    <div class="modal fade" id="RejectModal" tabindex="-1" aria-labelledby="RejectModal" aria-hidden="true">
+        <div class="modal-dialog">
+            <form method="POST" action="" id="thesisRejectionForm" name="thesisRejectionForm">
+                {% csrf_token %}
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="RejectModal">Are you sure?</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        Do you want to REJECT the thesis titled <strong>"{{ thesis.title }}"</strong> ?
+                        <br>
+                        {{ form.as_p }}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-hand-thumbs-down-fill"></i> Reject</button>
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><i class="bi bi-x"></i> Cancel</button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 

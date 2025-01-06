@@ -3,21 +3,74 @@
 
 {% block content %}
     <div class="col-md-6 offset-md-3" oncontextmenu="return false">
-        <a href="{% url 'request_list' %}" class="btn btn-secondary">Back</a>
+        {% if thesis_request.status == thesis_request.STATE_PENDING %}
+            <a href="{% url 'request_list' status_filter='pending' %}" class="btn btn-secondary">Back</a>
+        {% elif thesis_request.status == thesis_request.STATE_APPROVED %}
+            <a href="{% url 'request_list' status_filter='approved' %}" class="btn btn-secondary">Back</a>
+        {% elif thesis_request.status == thesis_request.STATE_REJECTED %}
+            <a href="{% url 'request_list' status_filter='rejected' %}" class="btn btn-secondary">Back</a>
+        {% endif %}
+        
         <br>
         <hr>
-        <h3>{{ thesis_request.title }}</h3>
-        <small>
+        
+        <h2>Title: {{ thesis_request.title }}</h2>
+        <h4>Request: #{{ thesis_request.pk }}</h4>
+        <p>
             Email: {{ thesis_request.email }} <br>
             Requested by: {{ thesis_request.first_name }} {{ thesis_request.last_name }} <br>
-            on {{ thesis_request.request_date.date }}
-        </small>
-        <br>
+            Date of Request: {{ thesis_request.request_date.date }} <br>
+            ID Picture: <br>
+            <img src="{% get_media_prefix %}{{ thesis_request.id_pic }}" alt="{{ product.name }}" width="600">
+        </p>
         <hr>
-        <form method="POST" action="">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-success">Accept</button>
-            <a href="{% url 'request_reject' thesis_request.pk %}" class="btn btn-danger">Reject</a>
-        </form>
+        {% if thesis_request.status == thesis_request.STATE_PENDING %}
+            <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#ApproveModal"><i class="bi bi-hand-thumbs-up-fill"></i> Approve</button>
+            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#RejectModal"><i class="bi bi-hand-thumbs-down-fill"></i> Reject</button>
+        {% endif %}
     </div>
+
+    <!-- APPROVE MODAL -->
+    <div class="modal fade" id="ApproveModal" tabindex="-1" aria-labelledby="ApproveModal" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="ApproveModal">Are you sure?</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Do you want to <strong>APPROVE</strong> Request #{{ thesis_request.pk }}?
+                </div>
+                <div class="modal-footer">
+                    <a href="{% url 'request_approve' thesis_request.slug %}" class="btn btn-success btn-sm"><i class="bi bi-check"></i> Yes</a>
+                    <button type="button" class="btn btn-danger btn-sm" data-bs-dismiss="modal"><i class="bi bi-x"></i> No</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- REJECT MODAL -->
+    <div class="modal fade" id="RejectModal" tabindex="-1" aria-labelledby="RejectModal" aria-hidden="true">
+        <div class="modal-dialog">
+            <form method="POST" action="" id="requestRejectionForm" name="requestRejectionForm">
+                {% csrf_token %}
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="RejectModal">Are you sure?</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        Do you want to <strong>REJECT</strong> the request #{{ thesis_request.pk }}?
+                        <br>
+                        {{ form.as_p }}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check"></i> Yes</button>
+                        <button type="button" class="btn btn-danger btn-sm" data-bs-dismiss="modal"><i class="bi bi-x"></i> No</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
 {% endblock %}

@@ -22,8 +22,47 @@
         });
     </script>
 
+    {% load static %}
+    <script type="text/javascript" src="{% static 'javascript/reloadonfocus.js' %}"></script>
+    <script>
+        // Event listener for window.blur
+        window.addEventListener('blur', function() {
+            // Make an AJAX request to Django when the window loses focus
+            $.ajax({
+                url: "{% url 'window_blur_method' temp_url %}",  // The Django URL to trigger the method
+                type: 'POST',  // Use POST if you're modifying server-side data
+                data: {
+                    'csrfmiddlewaretoken': '{{ csrf_token }}',  // CSRF token for security
+                    'message': 'Window lost focus'  // Optional data you can send to the server
+                },
+                success: function(response) {
+                    console.log("Django method triggered successfully!");
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error in AJAX request", error);
+                }
+            });
+        });
+    </script>
+    <script>
+        window.addEventListener('beforeunload', function() {
+            // Make an AJAX request to Django when the window loses focus
+            $.ajax({
+                url: "{% url 'window_blur_method' temp_url %}",  // The Django URL to trigger the method
+                type: 'POST',  // Use POST if you're modifying server-side data
+                data: {
+                    'csrfmiddlewaretoken': '{{ csrf_token }}',  // CSRF token for security
+                    'message': 'Window Closed'  // Optional data you can send to the server
+                },
+                success: function(response) {
+                    console.log("Django method triggered successfully!");
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error in AJAX request", error);
+                }
+            });
+        });
+    </script>
+
 {% endblock %}
 
-{% load static %}
-<script type="text/javascript" src="{% static 'reloadonfocus.js' %}"></script>
-<script type="text/javascript" src="{% static 'windowblur.js' %}"></script>

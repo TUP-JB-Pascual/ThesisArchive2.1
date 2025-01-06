@@ -6,26 +6,42 @@
         <h1>{{ status_filter }} Thesis Request List</h1>
         <form class="d-flex" role="search">
             <input class="form-control" type="text" placeholder="Search" aria-label="Search" id="searchInput" onkeyup="searchTable()">
-          </form>
+        </form>
         <table class="table" id="dataTable">
             <thead>
                 <tr>
+                    <th>Req ID</th>
                     <th onclick="sortTable(6)"><span class="sort-arrow" id="requestTitleArrow"></span>Title</th>
                     <th onclick="sortTable(7)"><span class="sort-arrow" id="petitionerArrow"></span>Petitioner</th>
                     <th onclick="sortTable(8)"><span class="sort-arrow" id="emailArrow"></span>Email</th>
                     <th onclick="sortTable(9)"><span class="sort-arrow" id="requestDateArrow"></span>Request Date</th>
-                    <th>Decision</th>
+                    <th>
+                        {% if status_filter == 'Pending' %}
+                            View
+                        {% elif status_filter == 'Approved' %}
+                            Status
+                        {% elif status_filter == 'Rejected' %}
+                            Reason
+                        {% endif %}
+                    </th>
                 </tr>
             </thead>
             <tbody>
                 {% for request in request_list %}
                     <tr>
+                        <td>{{ request.pk }}</td>
                         <td>{{ request.title }}</td>
                         <td>{{ request.first_name }} {{ request.last_name }}</td>
                         <td>{{ request.email }}</td>
                         <td>{{ request.request_date.date }}</td>
                         <td>
-                            <a href="{% url 'request_view' request.slug %}" class="btn btn-primary btn-sm">View</a>
+                            {% if status_filter == 'Pending' %}
+                                <a href="{% url 'request_view' request.slug %}" class="btn btn-primary btn-sm">View</a>
+                            {% elif status_filter == 'Approved' %}
+                                {{ request.url_status }}
+                            {% elif status_filter == 'Rejected' %}
+                                {{ request.rejection_reason }}
+                            {% endif %}
                         </td>
                     </tr>
                 {% endfor %}

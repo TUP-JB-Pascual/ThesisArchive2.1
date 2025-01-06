@@ -2,8 +2,24 @@
 
 {% block content %}
     <div class="col-md-6 offset-md-3">
-        <a href="{% url 'thesis_list' %}" class="btn btn-danger">Back</a>
-        <h1>Update Thesis</h1>        
+        <a href="{% url 'thesis_list' status_filter='approved' %}" class="btn btn-danger">Back</a>
+        <h3>
+            Update 
+            {% for value, display_name in form.instance.status_choices %}
+                {% if form.instance.status == value %}
+                    {{ display_name }}
+                {% endif %}
+            {% endfor %}
+            Thesis
+        </h3>
+        {% if form.instance.status == form.instance.STATE_REJECTED %}
+            Rejection Reason: 
+            {% for value, display_name in form.instance.reject_choices %}
+                {% if form.instance.rejection_reason == value %}
+                    <strong>{{ display_name }}</strong>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
         <form method="POST" action="" enctype="multipart/form-data" id="publishForm" name="publishForm">
             {% csrf_token %}
             {% if form.errors %}

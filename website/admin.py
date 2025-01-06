@@ -9,4 +9,6 @@ class ThesisAdmin(admin.ModelAdmin):
     def get_tags(self, obj):
         return ", ".join(o for o in obj.tags.names())
 
-admin.site.register(TempURL)
+@admin.register(TempURL)
+class ThesisAdmin(admin.ModelAdmin):
+    list_display = ['id', 'title', 'status', 'url_status', 'rejection_reason']

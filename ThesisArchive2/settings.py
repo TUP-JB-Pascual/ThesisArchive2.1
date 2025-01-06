@@ -64,7 +64,9 @@ ROOT_URLCONF = 'ThesisArchive2.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            BASE_DIR / 'templates',
+            ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -203,3 +205,4 @@ EMAIL_HOST_PASSWORD = 'ynek loos nhfj milf'
 DEFAULT_FROM_EMAIL = 'jerichogianjohn@gmail.com'
 
 TAGGIT_CASE_INSENSITIVE = True
+

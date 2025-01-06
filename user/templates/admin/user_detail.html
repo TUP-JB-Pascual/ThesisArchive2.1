@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+    <div class="col-md-8 offset-md-2" oncontextmenu="return false">
+        <a href="{% url 'account_list' %}" class="btn btn-secondary">Back</a>
+        <br>
+        <div class="account-container" style="padding: 15px; border: 3px solid gray; border-radius: 15px; margin: 1em 0;">
+            <h3>Account Information</h3>
+            <p style="margin: 0;" class="text-muted">
+                The Information and status of account is displayed here. 
+            </p>
+            <hr>
+            <div>
+                <i class="bi bi-envelope fs-4"></i>
+                Email: {{ viewed_user.email }}
+            </div>
+
+            <div>
+                <i class="bi bi-person fs-4"></i>
+                Name: {{ viewed_user.first_name }} {{ viewed_user.last_name }}
+            </div>
+
+            <div>
+                <i class="bi bi-calendar-check fs-4"></i>
+                Date Joined: {{ viewed_user.date_joined }} 
+            </div>
+
+            <div>
+                <i class="bi bi-person-check fs-4"></i>
+                Email Verification Status: 
+
+                {% if viewed_user.is_verified %}
+                    <span class="badge rounded-pill bg-success fs-6">Verified <i class="bi bi-check"></i></span>
+                {% else %}
+                    <span class="badge rounded-pill bg-danger fs-6">Unverified <i class="bi bi-x"></i></span>
+                {% endif %}
+            </div>
+
+            <div>
+                {% if viewed_user.is_active %}
+                    <i class="bi bi-shield-check fs-4"></i>
+                {% else %}
+                    <i class="bi bi-shield-x fs-4"></i>
+                {% endif %}
+
+                Account Status: 
+
+                {% if viewed_user.is_active %}
+                    <span class="badge rounded-pill bg-success fs-6">Active <i class="bi bi-check"></i></span>
+                {% else %}
+                    <span class="badge rounded-pill bg-danger fs-6">Deactived <i class="bi bi-check"></i></span>
+                {% endif %}
+                
+                
+            </div>
+
+            <div>
+                <i class="bi bi-person-badge fs-4"></i>
+                Account Type:
+                {% if viewed_user.is_staff %}
+                    Staff/Admin
+                {% else %}
+                    Student
+                {% endif %}
+            </div>
+            <hr>
+            {% if viewed_user.is_active %}
+                <p style="margin: 0 0 0.5em 0;" class="text-muted">
+                    Deactivating an account means that the user will not be able to login. 
+                    The account, uploaded manuscripts and request would not be removed.
+                </p>
+            {% else %}
+                <p style="margin: 0 0 0.5em 0;" class="text-muted">
+                    Activating an account means that the user will be able to login. 
+                    The account, uploaded manuscripts and request would not be removed.
+                </p>
+            {% endif %}
+            
+            <form method="POST" action="">
+                {% csrf_token %}
+                {% if viewed_user.is_active %}
+                    <a href="{% url 'deactivate_user' viewed_user.pk %}" class="btn btn-danger">Deactivate</a>
+                {% else %}
+                    <a href="{% url 'activate_user' viewed_user.pk %}" class="btn btn-success">Activate</a>
+                {% endif %}
+            </form>
+            <hr>
+            {% if viewed_user.is_staff %}
+                <p style="margin: 0 0 0.5em 0;" class="text-muted">
+                    Changing the account type to Student, will deny Administrative access to this account.
+                </p>
+            {% else %}
+                <p style="margin: 0 0 0.5em 0;" class="text-muted">
+                    Changing the account type to Staff/Admin, will grant Administrative access to this account.
+                </p>
+            {% endif %}
+            
+            <form method="POST" action="">
+                {% csrf_token %}
+                {% if viewed_user.is_staff %}
+                    <a href="{% url 'revoke_admin' viewed_user.pk %}" class="btn btn-danger">Change to Student</a>
+                {% else %}
+                    <a href="{% url 'grant_admin' viewed_user.pk %}" class="btn btn-success">Change to Staff/Admin</a>
+                {% endif %}
+            </form>
+        </div>
+    
+        <div>
+            <h3>Manuscripts</h3>
+            <p style="margin: 0 0 0.5em 0;" class="text-muted">
+                Here are the manuscripts uploaded by this account.
+            </p>
+            <hr>
+            <div class="row">
+                {% for rejected_thesis in rejectedThesisList%}
+                    <div class="col-md-6 repo-card">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title">{{ rejected_thesis.title }}</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-subtitle">Status:
+                                    <span class="badge rounded-pill bg-danger">Rejected</span>
+                                </p>
+                                <p class="card-text">Submission Date: {{ rejected_thesis.upload_date }}</p>
+                                <a href="{% url 'thesis_detail' rejected_thesis.slug %}" class="btn btn-primary"><i class="fa-solid fa-eye"></i> View</a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+                {% for pending_thesis in pendingThesisList%}
+                    <div class="col-md-6 repo-card">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title">{{ pending_thesis.title }}</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-subtitle">Status:
+                                    <span class="badge rounded-pill bg-warning text-dark">Pending</span>
+                                </p>
+                                <p class="card-text">Submission Date: {{ pending_thesis.upload_date }}</p>
+                                <a href="{% url 'thesis_detail' pending_thesis.slug %}" class="btn btn-primary" ><i class="fa-solid fa-eye"></i> View</a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+                {% for approved_thesis in approvedThesisList%}
+                    <div class="col-md-6 repo-card">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title">{{ approved_thesis.title }}</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-subtitle">Status:
+                                    <span class="badge rounded-pill bg-success">Approved</span>
+                                </p>
+                                <p class="card-text">Submission Date: {{ approved_thesis.upload_date }}</p>
+                                <a href="{% url 'thesis_detail' approved_thesis.slug %}" class="btn btn-primary"><i class="fa-solid fa-eye"></i> View</a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+{% endblock %}

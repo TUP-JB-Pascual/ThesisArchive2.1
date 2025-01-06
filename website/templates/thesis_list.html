@@ -2,7 +2,11 @@
 
 {% block content %}
     <div class="col-md-8 offset-md-2">
-        <h1>Thesis List</h1>
+        {%if user.is_staff %}
+            <h1>{{ status_filter }} Thesis List</h1>
+        {% else %}
+            <h1>Thesis List</h1>
+        {% endif %}
         <form class="d-flex" role="search">
             <input class="form-control" type="text" placeholder="Search" aria-label="Search" id="searchInput" onkeyup="searchTable()">
         </form>
@@ -11,7 +15,24 @@
                 <tr>
                     <th onclick="sortTable(0)"><span class="sort-arrow" id="titleArrow"></span>Title</th>
                     <th onclick="sortTable(1)"><span class="sort-arrow" id="posterArrow"></span>Poster</th>
-                    <th>File</th>
+                    
+                    {% if request.user.is_staff %}
+                        <th>
+                            {% if status_filter == 'Pending' %}
+                                Date Submitted
+                            {% elif status_filter == 'Approved' %}
+                                Date Approved
+                            {% elif status_filter == 'Rejected' %}
+                                Date Rejected
+                            {% endif %}
+                        </th>
+                    {% endif %}
+                
+                    {% if status_filter == 'Rejected' %}
+                        <th>Reason</th>
+                    {% endif %}
+                    
+                    <th>View</th>
                 </tr>
             </thead>
             <tbody>
@@ -19,8 +40,30 @@
                     <tr>
                         <td>{{ thesis.title }}</td>
                         <td>{{ thesis.poster.first_name }} {{ thesis.poster.last_name }}</td>
+                        
+                        {% if request.user.is_staff %}
+                            <td>
+                                {% if status_filter == 'Pending' %}
+                                    {{ thesis.upload_date }}
+                                {% elif status_filter == 'Approved' %}
+                                    {{ thesis.decision_date }}
+                                {% elif status_filter == 'Rejected' %}
+                                    {{ thesis.decision_date }}
+                                {% endif %}
+                            </td>
+                        {% endif %}
+                        
+                        {% if status_filter == 'Rejected' %}
+                            <td>
+                                {{ thesis.rejection_reason }}
+                            </td>
+                        {% endif %}
                         <td>
-                            <a href="{% url 'thesis_detail' thesis.slug %}" class="btn btn-primary btn-sm">Open</a>
+                            {% if status_filter == 'Pending' %}
+                                <a href="{% url 'thesis_detail' thesis.slug %}" class="btn btn-primary btn-sm">Evaluate</a>
+                            {% else %}
+                                <a href="{% url 'thesis_detail' thesis.slug %}" class="btn btn-primary btn-sm">View</a>
+                            {% endif %}
                         </td>
                     </tr>
                 {% endfor %}

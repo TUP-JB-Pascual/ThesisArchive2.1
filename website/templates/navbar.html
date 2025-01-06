@@ -34,22 +34,44 @@
               Request
             </a>
             <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink">
-              <li><a class="dropdown-item" href="{% url 'request_list' status_filter='pending' %}">Pending Request</a></li>
-              <li><a class="dropdown-item" href="{% url 'request_list' status_filter='approved' %}">Approved Request</a></li>
-              <li><a class="dropdown-item" href="{% url 'request_list' status_filter='rejected' %}">Rejected Request</a></li>
+              <li><a class="dropdown-item" href="{% url 'request_list' status_filter='Pending' %}">Pending Request</a></li>
+              <li><a class="dropdown-item" href="{% url 'request_list' status_filter='Approved' %}">Approved Request</a></li>
+              <li><a class="dropdown-item" href="{% url 'request_list' status_filter='Rejected' %}">Rejected Request</a></li>
             </ul>
           </li>
           {% endif %}
 
-          {% if user.is_authenticated %}
+          {% if user.is_authenticated and user.is_staff %}
+
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="navbarDarkDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              Thesis
+            </a>
+            <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink">
+              <li><a class="dropdown-item" href="{% url 'thesis_list' status_filter='pending' %}">Pending Thesis</a></li>
+              <li><a class="dropdown-item" href="{% url 'thesis_list' status_filter='approved' %}">Approved Thesis</a></li>
+              <li><a class="dropdown-item" href="{% url 'thesis_list' status_filter='rejected' %}">Rejected Thesis</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="nav-link" href="{% url 'thesis_publish' %}">Publish Thesis</a></li>
+            </ul>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'account_list' %}">Accounts</a>
+          </li>
+          
+          {% elif user.is_authenticated %}
           <li class="nav-item">
             <a class="nav-link" href="{% url 'thesis_publish' %}">Publish Thesis</a>
           </li>
-          {% endif %}
-          <li class="nav-item"></li>
-            <a class="nav-link" href="{% url 'thesis_list' %}">Thesis List</a>
+
+          {% else %}
+          
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'thesis_list' status_filter='approved' %}">Thesis List</a>
           </li>
-          <li class="nav-item"></li>
+          {% endif %}
+          
+          <li class="nav-item">
             <a class="nav-link" href="{% url 'tags_list' %}">Tags List</a>
           </li>
         </ul>

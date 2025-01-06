@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="col-md-8 offset-md-2">
+        
+        <h1>User List</h1>
+        <form class="d-flex" role="search">
+            <input class="form-control" type="text" placeholder="Search" aria-label="Search" id="searchInput" onkeyup="searchTable()">
+          </form>
+        <table class="table" id="dataTable">
+            <thead>
+                <tr>
+                    <th onclick="sortTable(6)"><span class="sort-arrow" id="requestTitleArrow"></span>Email</th>
+                    <th onclick="sortTable(7)"><span class="sort-arrow" id="petitionerArrow"></span>First Name</th>
+                    <th onclick="sortTable(8)"><span class="sort-arrow" id="emailArrow"></span>Last Name</th>
+                    <th onclick="sortTable(9)"><span class="sort-arrow" id="requestDateArrow"></span>Date Joined</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for viewed_user in user_list %}
+                    <tr>
+                        <td>{{ viewed_user.email }}</td>
+                        <td>{{ viewed_user.first_name }} </td>
+                        <td>{{ viewed_user.last_name }}</td>
+                        <td>{{ viewed_user.date_joined }}</td>
+                        <td>
+                            <a href="{% url 'account_detail' viewed_user.pk %}" class="btn btn-primary btn-sm">Manage</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% load static %}
+    <script type="text/javascript" src="{% static 'javascript/datatable.js' %}"></script>
+
+{% endblock %}

@@ -3,84 +3,63 @@
 {% block content %}
     <div class="col-md-10 offset-md-1">
         {% if user.is_authenticated %}
-        <div class="welcome rounded bg-dark text-light">
-            <h4>My Projects</h4>
-            <p>Welcome, {{ user.first_name }} {{user.last_name}} </p>
-        </div>
-        <hr>
-        <div class="row">
-            <div class="col-md-6 repo-card">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title">TITLE</h5>
-                    </div>
-                    <div class="card-body">
-                        <p class="card-subtitle">Status:
-                            <span class="badge rounded-pill bg-success">Approved</span>
-                            <span class="badge rounded-pill bg-danger">Rejected</span>
-                            <span class="badge rounded-pill bg-warning">Pending</span>
-                        </p>
-                        <p class="card-text">Submission Date: Mon. Dy , Year</p>
-                        <a href="" class="btn btn-primary"><i class="fa-solid fa-eye"></i> View</a>
-                        <a href="" class="btn btn-success"><i class="fa-solid fa-arrows-rotate"></i> Resubmit</a>
-                        <a href="" class="btn btn-danger"><i class="fa-solid fa-trash-can"></i> Delete</a>
-                    </div>
-                </div>
+            <div class="welcome rounded bg-dark text-light">
+                <h4>My Projects</h4>
+                <p>Welcome, {{ user.first_name }} {{user.last_name}} </p>
             </div>
-            <div class="col-md-6 repo-card">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title">TITLE</h5>
+            <hr>
+            <div class="row">
+                {% for rejected_thesis in rejectedThesisList%}
+                    <div class="col-md-6 repo-card">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title">{{ rejected_thesis.title }}</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-subtitle">Status:
+                                    <span class="badge rounded-pill bg-danger">Rejected</span>
+                                </p>
+                                <p class="card-text">Submission Date: {{ rejected_thesis.upload_date }}</p>
+                                <a href="{% url 'thesis_update' rejected_thesis.slug %}" class="btn btn-secondary"><i class="fa-solid fa-arrows-rotate"></i> Resubmit</a>
+                            </div>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <p class="card-subtitle">Status:
-                            <span class="badge rounded-pill bg-success">Approved</span>
-                            <span class="badge rounded-pill bg-danger">Rejected</span>
-                            <span class="badge rounded-pill bg-warning">Pending</span>
-                        </p>
-                        <p class="card-text">Submission Date: Mon. Dy , Year</p>
-                        <a href="" class="btn btn-primary"><i class="fa-solid fa-eye"></i> View</a>
-                        <a href="" class="btn btn-success"><i class="fa-solid fa-arrows-rotate"></i> Resubmit</a>
-                        <a href="" class="btn btn-danger"><i class="fa-solid fa-trash-can"></i> Delete</a>
+                {% endfor %}
+                {% for pending_thesis in pendingThesisList%}
+                    <div class="col-md-6 repo-card">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title">{{ pending_thesis.title }}</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-subtitle">Status:
+                                    <span class="badge rounded-pill bg-warning text-dark">Pending</span>
+                                </p>
+                                <p class="card-text">Submission Date: {{ pending_thesis.upload_date }}</p>
+                                <a href="{% url 'thesis_update' pending_thesis.slug %}" class="btn btn-warning text-dark" ><i class="bi bi-pencil-square"></i> Update</a>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                {% endfor %}
+                {% for approved_thesis in approvedThesisList%}
+                    <div class="col-md-6 repo-card">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title">{{ approved_thesis.title }}</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-subtitle">Status:
+                                    <span class="badge rounded-pill bg-success">Approved</span>
+                                </p>
+                                <p class="card-text">Submission Date: {{ approved_thesis.upload_date }}</p>
+                                <a href="{% url 'thesis_detail' approved_thesis.slug %}" class="btn btn-primary"><i class="fa-solid fa-eye"></i> View</a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
             </div>
-            <div class="col-md-6 repo-card">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title">TITLE</h5>
-                    </div>
-                    <div class="card-body">
-                        <p class="card-subtitle">Status:
-                            <span class="badge rounded-pill bg-success">Approved</span>
-                            <span class="badge rounded-pill bg-danger">Rejected</span>
-                            <span class="badge rounded-pill bg-warning">Pending</span>
-                        </p>
-                        <p class="card-text">Submission Date: Mon. Dy , Year</p>
-                        <a href="" class="btn btn-primary"><i class="fa-solid fa-eye"></i> View</a>
-                        <a href="" class="btn btn-success"><i class="fa-solid fa-arrows-rotate"></i> Resubmit</a>
-                        <a href="" class="btn btn-danger"><i class="fa-solid fa-trash-can"></i> Delete</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6 repo-card">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title">TITLE</h5>
-                    </div>
-                    <div class="card-body">
-                        <p class="card-subtitle">Status:
-                            <span class="badge rounded-pill bg-success">Approved</span>
-                            <span class="badge rounded-pill bg-danger">Rejected</span>
-                            <span class="badge rounded-pill bg-warning">Pending</span>
-                        </p>
-                        <p class="card-text">Submission Date: Mon. Dy , Year</p>
-                        <a href="" class="btn btn-primary"><i class="fa-solid fa-eye"></i> View</a>
-                        <a href="" class="btn btn-success"><i class="fa-solid fa-arrows-rotate"></i> Resubmit</a>
-                        <a href="" class="btn btn-danger"><i class="fa-solid fa-trash-can"></i> Delete</a>
-                    </div>
-                </div>
-            </div>
+        {% else %}
+            <h3>You need to be Logged in to Access this Page.</h3>
         {% endif %}
     </div>
     

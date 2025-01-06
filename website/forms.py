@@ -46,11 +46,28 @@ class ThesisForm(forms.ModelForm):
         self.fields['tags'].label = 'Tag(s):'
         self.fields['tags'].help_text = mark_safe('<span class="form-text text-muted"><small>Separate each tag with a comma \",\"</small></span>')
 
+class ThesisRejectReasonForm(forms.ModelForm):
+    class Meta:
+        model = Thesis
+        fields = ['rejection_reason']
+
+    reject_choices = Thesis.reject_choices
+
+    rejection_reason = forms.ChoiceField(choices=reject_choices, widget=forms.Select,)
+
+    def __init__(self, *args, **kwargs):
+        super(ThesisRejectReasonForm, self).__init__(*args, **kwargs)
+        self.fields['rejection_reason'].widget.attrs['class'] = 'form-control'
+        self.fields['rejection_reason'].widget.attrs['placeholder'] = 'Rejection Reason'
+        self.fields['rejection_reason'].label = 'Rejection Reason:'
+        
 
 class RequestForm(forms.ModelForm):
     class Meta:
         model = TempURL
-        fields = ['email', 'first_name', 'last_name']
+        fields = ['email', 'first_name', 'last_name', 'id_pic']
+    
+    id_pic = forms.ImageField(required=True)
         
     def __init__(self, *args, **kwargs):
         super(RequestForm, self).__init__(*args, **kwargs)
@@ -65,3 +82,23 @@ class RequestForm(forms.ModelForm):
         self.fields['last_name'].widget.attrs['class'] = 'form-control'
         self.fields['last_name'].widget.attrs['placeholder'] = 'Last Name'
         self.fields['last_name'].label = 'Last Name:'
+
+        self.fields['id_pic'].widget.attrs['class'] = 'form-control'
+        self.fields['id_pic'].widget.attrs['placeholder'] = 'ID'
+        self.fields['id_pic'].label = 'ID Picture:'
+        self.fields['id_pic'].help_text = '<span class="form-text text-muted"><small>Upload a picture of your ID.</small></span>'
+
+class RequestRejectReasonForm(forms.ModelForm):
+    class Meta:
+        model = Thesis
+        fields = ['rejection_reason']
+
+    reject_choices = TempURL.url_reject_choices
+
+    rejection_reason = forms.ChoiceField(choices=reject_choices, widget=forms.Select,)
+
+    def __init__(self, *args, **kwargs):
+        super(RequestRejectReasonForm, self).__init__(*args, **kwargs)
+        self.fields['rejection_reason'].widget.attrs['class'] = 'form-control'
+        self.fields['rejection_reason'].widget.attrs['placeholder'] = 'Rejection Reason'
+        self.fields['rejection_reason'].label = 'Rejection Reason:'

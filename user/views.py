@@ -1,8 +1,8 @@
-from django.shortcuts import render, redirect, resolve_url
+from django.shortcuts import render, redirect, resolve_url, get_object_or_404
 from django.views import generic
 from django.contrib.auth import logout
-from django.contrib.auth.views import LoginView, LogoutView
-from .forms import RegisterUserForm, UpdateProfileForm, ChangePasswordForm
+from django.contrib.auth.views import LoginView, LogoutView, PasswordResetView, PasswordResetDoneView, PasswordResetConfirmView, PasswordResetCompleteView
+from .forms import RegisterUserForm, UpdateProfileForm, ChangePasswordForm, CustomPasswordResetForm
 from django.contrib import messages
 from django.urls import reverse_lazy, reverse
 
@@ -17,8 +17,12 @@ from django.contrib.auth import get_user_model
 from django.http import HttpResponse
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
-
 from django.conf import settings
+
+from .tokens import password_reset_token
+from django.contrib.auth.forms import PasswordResetForm, SetPasswordForm
+from django.utils import timezone
+from datetime import timedelta
 
 def UserRegisterView(request):
     if request.user.is_authenticated:
@@ -102,10 +106,8 @@ class UserLoginView(LoginView):
     
     def get_success_url(self):
         if self.request.user.is_authenticated and self.request.user.is_superuser:
-            messages.success(self.request, "Welcome Super User")
             return reverse_lazy('home')
         elif self.request.user.is_authenticated:
-            messages.success(self.request, "Welcome User")
             return reverse_lazy('home') 
         else:
             messages.success(self.request, "To access that page you need to log in.")
@@ -157,5 +159,91 @@ def UserChangePassword(request):
         messages.success(request, "To Access this page you need to log in first.")
         return redirect('login')
 
-def UserForgotPassword(request):
-    pass
+@login_required(login_url='user/login/')
+def UserListView(request):
+    if request.user.is_authenticated and request.user.is_superuser:
+        User = get_user_model()
+        user_list = User.objects.all()
+        context = {'user_list': user_list}
+        return render (request, 'admin/user_list.html', context)
+
+@login_required(login_url='user/login/')
+def UserManageView(request, pk):
+    STATE_APPROVED = 'APPROVED'
+    STATE_REJECTED = 'REJECTED'
+    STATE_PENDING = 'PENDING'
+    if request.user.is_authenticated and request.user.is_superuser:
+        User = get_user_model()
+        viewed_user = get_object_or_404(User, id=pk)
+        viewed_user_post = viewed_user.thesis.all()
+        rejectedThesisList = viewed_user_post.filter(status=STATE_REJECTED)
+        pendingThesisList = viewed_user_post.filter(status=STATE_PENDING)
+        approvedThesisList = viewed_user_post.filter(status=STATE_APPROVED)
+        context = {'viewed_user': viewed_user, 'rejectedThesisList': rejectedThesisList, 'pendingThesisList': pendingThesisList, 'approvedThesisList': approvedThesisList}
+        return render(request, 'admin/user_detail.html', context)
+    else:
+        return redirect('restricted_page')
+
+def ActivateUser(request, pk):
+    User = get_user_model()
+    viewed_user = get_object_or_404(User, id=pk)
+    viewed_user.is_active = True
+    viewed_user.save()  # Save the changes to the database
+    messages.success(request, f"You have activated {viewed_user.email}.")
+    return redirect('account_detail', pk=pk)  # Redirect to a user list or user detail page
+
+def DeactivateUser(request, pk):
+    User = get_user_model()
+    viewed_user = get_object_or_404(User, id=pk)
+    viewed_user.is_active = False
+    viewed_user.save()  # Save the changes to the database
+    messages.success(request, f"You have deactivated {viewed_user.email}.")
+    return redirect('account_detail', pk=pk)  # Redirect to a user list or user detail page
+
+def ChangeAccTypeToAdmin(request, pk):
+    User = get_user_model()
+    viewed_user = get_object_or_404(User, id=pk)
+    viewed_user.is_staff = True
+    viewed_user.is_superuser = True
+    viewed_user.save()  # Save the changes to the database
+    messages.success(request, f"You have change the account type of {viewed_user.email} to Staff/Admin.")
+    return redirect('account_detail', pk=pk)  # Redirect to a user list or user detail page
+
+def ChangeAccTypeToStudent(request, pk):
+    User = get_user_model()
+    viewed_user = get_object_or_404(User, id=pk)
+    viewed_user.is_staff = False
+    viewed_user.is_superuser = False
+    viewed_user.save()  # Save the changes to the database
+    messages.success(request, f"You have change the account type of {viewed_user.email} to Student.")
+    return redirect('account_detail', pk=pk)  # Redirect to a user list or user detail page
+
+def RestrictedPage(request):
+    context = {}
+    return render(request, 'admin/restricted_page.html', context)
+
+class CustomPasswordResetView(PasswordResetView):
+    form_class = CustomPasswordResetForm
+    template_name='registration/forgot_password.html'
+    #html_email_template_name='registration/password_reset_email.html'
+    email_template_name = 'registration/password_reset_email.html'
+    subject_template_name = 'registration/password_reset_subject.txt'
+    success_url = '/user/password-reset-done/'
+
+    def send_mail(self, subject, message, from_email, recipient_list, html_message=None):
+        # Customize the email here if needed
+        subject = f"Reset Your Password - {subject}"
+
+        # Call the super method to actually send the email
+        super().send_mail(subject, message, from_email, recipient_list, html_message)
+
+class CustomPasswordResetDoneView(PasswordResetDoneView):
+    template_name = 'registration/custom_password_reset_done.html'
+
+class CustomPasswordResetConfirmView(PasswordResetConfirmView):
+    template_name = 'registration/custom_password_reset_confirm.html'
+    success_url = reverse_lazy('password_reset_complete') 
+    form_class = ChangePasswordForm
+
+class CustomPasswordResetCompleteView(PasswordResetCompleteView):
+    template_name = 'registration/custom_password_reset_complete.html'

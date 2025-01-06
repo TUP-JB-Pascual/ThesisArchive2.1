@@ -7,6 +7,7 @@ import pymupdf
 import datetime
 from django.db import transaction
 from django.db.models.signals import post_delete, pre_delete, post_save, pre_save
+from django.core.validators import FileExtensionValidator
 from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.text import slugify
@@ -23,7 +24,7 @@ def rename_pdf(instance, filename):
 
 class Thesis(models.Model):
     STATE_APPROVED = 'APPROVED'
-    STATE_REJECTED = 'USED'
+    STATE_REJECTED = 'REJECTED'
     STATE_PENDING = 'PENDING'
     
     status_choices = (
@@ -32,20 +33,33 @@ class Thesis(models.Model):
         (STATE_PENDING, 'Pending')
     )
     
+    REJECT_TITLE_ERROR = 'Invalid Title'
+    REJECT_AUTHOR_ERROR = 'Invalid Name'    
+    REJECT_FILE_ERROR = 'Invalid File'
+    REJECT_SUBMIT_ERROR = 'Incomplete Detail'
+
+
+    reject_choices = (
+        (REJECT_TITLE_ERROR, 'Incorrect Title was submitted'),
+        (REJECT_AUTHOR_ERROR, 'Typographical Error in the name of one or more Author(s)'),
+        (REJECT_FILE_ERROR, 'Problem with the Uploaded File'),
+        (REJECT_SUBMIT_ERROR, 'Information that was submitted was either incomplete or incorrect')
+    )
+
     upload_date = models.DateTimeField(auto_now_add=True)
     published_date = models.DateField()
     title = models.TextField(max_length=255)
     slug = models.SlugField(max_length=300, blank=True, null=True)
     authors = models.TextField(max_length=255)
-    poster = models.ForeignKey(User, on_delete=models.DO_NOTHING)
-    pdf_file = models.FileField(upload_to=rename_pdf, max_length=500)
+    poster = models.ForeignKey(User, on_delete=models.DO_NOTHING, related_name='thesis')
+    pdf_file = models.FileField(upload_to=rename_pdf, max_length=500, validators=[FileExtensionValidator(allowed_extensions=['pdf'])])
     tags = TaggableManager()
     visits = models.IntegerField(default=0)
     downloads = models.IntegerField(default=0)
 
     status = models.CharField(max_length=10, choices=status_choices, default=STATE_PENDING)
     decision_date = models.DateField(default=datetime.date.today())
-    # null=True, default=None
+    rejection_reason = models.CharField(max_length=50, choices=reject_choices, default="", blank=True, null=True)
 
     def __str__(self):
         return(f"{self.title} by {self.poster}")
@@ -157,14 +171,14 @@ def delete_extra_pdf(sender, instance, *args, **kwargs):
         print(pdf_name, "has been deleted.")
 
 class TempURL(models.Model):
-    STATE_EXPIRED = 'EXPIRED'
-    STATE_USED = 'USED'
-    STATE_VALID = 'VALID'
-    STATE_DNE = 'DOES NOT EXIST'
+    STATE_EXPIRED = 'Expired'
+    STATE_USED = 'Used'
+    STATE_VALID = 'Valid'
+    STATE_DNE = 'Does Not Exist'
 
-    STATE_APPROVED = 'APPROVED'
-    STATE_REJECTED = 'REJECTED'
-    STATE_PENDING = 'PENDING'
+    STATE_APPROVED = 'Approved'
+    STATE_REJECTED = 'Rejected'
+    STATE_PENDING = 'Pending'
     
     url_state_choices = (
         (STATE_EXPIRED, 'Expired'),
@@ -179,6 +193,18 @@ class TempURL(models.Model):
         (STATE_PENDING, 'Pending')
     )
 
+    REJECT_EMAIL_ERROR = 'Invalid Email'
+    REJECT_NAME_ERROR = 'Invalid Name'    
+    REJECT_FILE_ERROR = 'Invalid File'
+    REJECT_CLARITY_ERROR = 'Blurred ID'
+
+    url_reject_choices = (
+        (REJECT_EMAIL_ERROR, 'Invalid Email is used'),
+        (REJECT_NAME_ERROR, 'Typographical Error in the name of the requestor'),
+        (REJECT_FILE_ERROR, 'Problem in the Uploaded File'),
+        (REJECT_CLARITY_ERROR, 'ID Submitted is blurred/pixelated/unreadable')
+    )
+
     url_key = models.CharField(max_length=100, unique=True)
     title = models.TextField(max_length=255)
     slug = models.SlugField(max_length=300, blank=True, null=True)
@@ -190,10 +216,15 @@ class TempURL(models.Model):
     email = models.EmailField()
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
+    id_pic = models.ImageField(upload_to='request_id/',
+                                validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png'])],
+                                null=False, blank=False)
 
     status = models.CharField(max_length=10, choices=status_choices, default=STATE_PENDING)
     url_status = models.CharField(max_length=15, choices=url_state_choices, default=STATE_DNE)
     decision_date = models.DateTimeField(default=datetime.date.today())
+    rejection_reason = models.CharField(max_length=50, choices=url_reject_choices, default="", blank=True, null=True)
+
     # null=True, default=None
 
     def is_expired(self):

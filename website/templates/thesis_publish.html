@@ -7,18 +7,20 @@
             {% for field in form %}
                 {% if field.errors %}
                     {{ field.errors }}
+                    {{ field.name}}
                 {% endif %}
             {% endfor %}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     {% endif %}
     <div class="col-md-6 offset-md-3 profile-container">
-        <!--<a href="{% url 'thesis_list' %}" class="btn btn-secondary">Back</a>-->
+        <!--<a href="{% url 'thesis_list' status_filter='approved' %}" class="btn btn-secondary">Back</a>-->
         <div class="profile-header">
             <h1>Publish Thesis</h1>
         </div>
         <form method="POST" action="" enctype="multipart/form-data" id="publishForm" name="publishForm">
             {% csrf_token %}
+            {{ form.poster }}
             <div class="grid-container">
                 <label>{{ form.published_date.label }}</label>{{ form.published_date }}
                 <label>{{ form.title.label }}</label>{{ form.title }}
